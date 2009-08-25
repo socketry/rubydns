@@ -1,0 +1,63 @@
+= RubyDNS
+
+Author::    Samuel Williams (http://www.oriontransfer.co.nz/)
+Copyright:: Copyright (C) 2009 Samuel Williams
+License::   GPLv3
+Git::       http://git.oriontransfer.org
+
+RubyDNS is a simple programmatic DSL (domain specific language) for configuring and running a DNS server. RubyDNS provides a daemon that runs a DNS server which can process DNS requests depending on specific policy. Rule selection is based on pattern matching, and results can be hard-coded, computed, fetched from a remote DNS server, fetched from a local cache, etc.
+
+RubyDNS provides a full daemon server using RExec. You can either use the built in daemon, customize it to your needs, or specify a full daemon implementation.
+
+RubyDNS is not designed to be high-performance and uses a thread-per-request model. This is designed to make it as easy as possible to achieve concurrent performance. This is also due to the fact that many other APIs work best this way (unfortunately).
+
+== Basic Example
+
+This is copied from <tt>test/example1.rb</tt>. It has been simplified slightly.
+
+  require 'rubygems'
+  require 'rubydns'
+
+  $R = Resolv::DNS.new
+
+  RubyDNS::run_server do
+  	# For this exact address record, return an IP address
+  	match("dev.mydomain.org", :A) do |transaction|
+  		transaction.respond!("10.0.0.80")
+  	end
+	
+  	match(/^test([0-9]+).mydomain.org$/, :A) do |match_data, transaction|
+  		offset = match_data[1].to_i
+		
+  		if offset > 0 && offset < 10
+  			logger.info "Responding with address #{"10.0.0." + (90 + offset).to_s}..."
+  			transaction.respond!("10.0.0." + (90 + offset).to_s)
+  		else
+  			logger.info "Address out of range: #{offset}!"
+  			false
+  		end
+  	end
+
+  	# Default DNS handler
+  	otherwise do |transaction|
+  		logger.info "Passing DNS request upstream..."
+  		transaction.passthrough!($R)
+  	end
+  end
+
+After starting this server you can test it using dig:
+
+  dig @localhost test1.mydomain.org
+  dig @localhost dev.mydomain.org
+  dig @localhost google.com
+
+
+== Todo
+
+* Better support for logging output
+* Support for TCP connections
+* Support for more features of DNS such as zone transfer
+* Support reverse records more easily?
+
+
+

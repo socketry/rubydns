@@ -1,0 +1,20 @@
+
+Dir.chdir("../") do
+  Gem::Specification.new do |s|
+    s.name = "RubyDNS"
+    s.version = "0.1.0"
+    s.date = "2009-08-20"
+    s.summary = "A simple DNS server DSL for Ruby."
+    s.homepage = "http://wiki.oriontransfer.org/?rails:account_engine"
+    s.has_rdoc = true
+    s.authors = ["Samuel Williams"]
+    s.files = FileList["{lib,test}/**/*"] + ["README.rdoc"]
+    
+    s.extra_rdoc_files = ["README.rdoc"]
+    s.rdoc_options << '--main' << 'README.rdoc'
+
+    s.add_dependency("net-mdns")
+    s.add_dependency("rexec")
+  end
+end
+
