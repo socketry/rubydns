@@ -34,11 +34,11 @@ module RubyDNS
 			@rules = []
 			@otherwise = nil
 
+			@logger = Logger.new($stderr)
+
 			if block_given?
 				instance_eval &block
 			end
-			
-			@logger = Logger.new($stderr)
 		end
 
 		attr :logger, true
@@ -86,7 +86,7 @@ module RubyDNS
 		# If a rule returns false, it is considered that the rule failed and
 		# futher matching is carried out.
 		def process(name, record_type, *args)
-			@logger.info "Searching for #{name} #{record_type}"
+			@logger.debug "Searching for #{name} #{record_type}"
 
 			@rules.each do |rule|
 				pattern = rule[0]
@@ -98,6 +98,7 @@ module RubyDNS
 				when Array
 					next if pattern[1].include?(record_type.upcase)
 				end
+
 				@logger.debug "Resource type #{record_type} matched #{pattern[1].inspect}"
 
 				# Match succeeded against name?

@@ -42,6 +42,7 @@ module RubyDNS
 	# The default interface is <tt>[[:udp, "0.0.0.0", 53]]</tt>
 	def self.run_server (options = {}, &block)
 		server = RubyDNS::Server.new(&block)
+		threads = ThreadGroup.new
 
 		server.logger.info "Starting server..."
 
@@ -61,26 +62,33 @@ module RubyDNS
 			end
 		end
 		
-		# Listen for incoming packets
-		while true
-			ready = IO.select(sockets)
+		begin
+			# Listen for incoming packets
+			while true
+				ready = IO.select(sockets)
 
-			ready[0].each do |socket|
-				packet, sender = socket.recvfrom(1024*5)
-				server.logger.debug "Receiving incoming query..."
+				ready[0].each do |socket|
+					packet, sender = socket.recvfrom(1024*5)
+					server.logger.debug "Receiving incoming query..."
 
-				Thread.new do
-					begin
-						result = server.receive_data(packet)
+					thr = Thread.new do
+						begin
+							result = server.receive_data(packet)
 
-						socket.send(result, 0, sender[2], sender[1])
-					rescue
-						server.logger.error "Error processing request!"
-						@logger.error "#{$!.class}: #{$!.message}"
-						$!.backtrace.each { |at| @logger.error at }
+							socket.send(result, 0, sender[2], sender[1])
+						rescue
+							server.logger.error "Error processing request!"
+							server.logger.error "#{$!.class}: #{$!.message}"
+							$!.backtrace.each { |at| server.logger.error at }
+						end
 					end
+					
+					threads.add thr
 				end
 			end
+		rescue Interrupt
+			server.logger.info "Server interrupted - stopping #{threads.list.size} request(s)."
+			threads.list.each { |thr| thr.join }
 		end
 	end
 end
