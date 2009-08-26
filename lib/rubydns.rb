@@ -28,7 +28,7 @@ module RubyDNS
 	
 	# Run a server with the given rules. A number of options can be supplied:
 	#
-	# <tt>:interfaces</tt>:: A set of addresses as defined below.
+	# <tt>:interfaces</tt>:: A set of sockets or addresses as defined below.
 	#
 	# One important feature of DNS is the port it runs on. The <tt>options[:interfaces]</tt>
 	# allows you to specify a set of network interfaces and ports to run the server on. This
@@ -39,7 +39,15 @@ module RubyDNS
 	#     ...
 	#   end
 	#
-	# The default interface is <tt>[[:udp, "0.0.0.0", 53]]</tt>
+	# You can specify already connected sockets if need be:
+	#
+	#   socket = UDPSocket.new; socket.bind("0.0.0.0", 53)
+	#   Process::Sys.setuid(server_uid)
+	#   INTERFACES = [socket]
+	#
+	# The default interface is <tt>[[:udp, "0.0.0.0", 53]]</tt>. The server needs to run
+	# as root for this to work, and thus should not be used in production environment.
+	#
 	def self.run_server (options = {}, &block)
 		server = RubyDNS::Server.new(&block)
 		threads = ThreadGroup.new
@@ -52,10 +60,12 @@ module RubyDNS
 		
 		# Setup server sockets
 		options[:listen].each do |spec|
-			if spec[0] == :udp
+			if spec.kind_of?(BasicSocket)
+				sockets << spec
+			elsif spec[0] == :udp
 				socket = UDPSocket.new
 				socket.bind(spec[1], spec[2])
-				
+
 				sockets << socket
 			elsif spec[0] == :tcp
 				server.logger.warn "Sorry, TCP is not currently supported!"
