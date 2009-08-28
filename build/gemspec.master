@@ -2,10 +2,10 @@
 Dir.chdir("../") do
   Gem::Specification.new do |s|
     s.name = "RubyDNS"
-    s.version = "0.1.1"
+    s.version = "0.1.2"
     s.date = "2009-08-26"
     s.summary = "A simple DNS server DSL for Ruby."
-    s.homepage = "http://wiki.oriontransfer.org/?rails:account_engine"
+    s.homepage = "http://wiki.oriontransfer.org/code:rubydns.git"
     s.has_rdoc = true
     s.authors = ["Samuel Williams"]
     s.files = FileList["{lib,test}/**/*"] + ["README.rdoc"]

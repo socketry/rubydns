@@ -89,17 +89,19 @@ module RubyDNS
 			@logger.debug "Searching for #{name} #{record_type}"
 
 			@rules.each do |rule|
+				@logger.debug "Checking rule #{rule[0].inspect}..."
+				
 				pattern = rule[0]
 
 				# Match failed against record_type?
 				case pattern[1]
 				when String
 					next if pattern[1] != record_type.upcase
+					@logger.debug "Resource type #{record_type} matched"
 				when Array
 					next if pattern[1].include?(record_type.upcase)
+					@logger.debug "Resource type #{record_type} matched #{pattern[1].inspect}"
 				end
-
-				@logger.debug "Resource type #{record_type} matched #{pattern[1].inspect}"
 
 				# Match succeeded against name?
 				case pattern[0]
@@ -107,14 +109,20 @@ module RubyDNS
 					match_data = pattern[0].match(name)
 					if match_data
 						@logger.debug "Query #{name} matched #{pattern[0].to_s} with result #{match_data.inspect}"
-						return if rule[1].call(match_data, *args)
+						if rule[1].call(match_data, *args)
+							@logger.debug "Rule returned successfully"
+							return
+						end
 					else
 						@logger.debug "Query #{name} failed to match against #{pattern[0].to_s}"
 					end
 				when String
 					if pattern[0] == name
 						@logger.debug "Query #{name} matched #{pattern[0]}"
-						return if rule[1].call(*args)
+						if rule[1].call(*args)
+							@logger.debug "Rule returned successfully"
+							return
+						end
 					else
 						@logger.debug "Query #{name} failed to match against #{pattern[0]}"
 					end
