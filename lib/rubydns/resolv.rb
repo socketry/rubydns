@@ -16,7 +16,7 @@
 # Resolv rdoc
 # http://www.ruby-doc.org/stdlib/libdoc/resolv/rdoc/index.html
 
-require 'net/dns/resolv'
+require 'resolv'
 
 class Resolv
 	class DNS
@@ -25,27 +25,26 @@ class Resolv
 		# modification/reinterpretation.
 		def query(name, typeclass)
 			lazy_initialize
-			q = Queue.new
+			requester = make_requester
 			senders = {}
 			begin
-				@config.resolv(name) do |candidate, tout, nameserver|
+				@config.resolv(name) {|candidate, tout, nameserver|
 					msg = Message.new
 					msg.rd = 1
 					msg.add_question(candidate, typeclass)
 					unless sender = senders[[candidate, nameserver]]
-						sender = senders[[candidate, nameserver]] = @requester.sender(msg, candidate, q, nameserver)
+						sender = senders[[candidate, nameserver]] =
+						requester.sender(msg, candidate, nameserver)
 					end
-					sender.send
-					reply = reply_name = nil
-					timeout(tout, ResolvTimeout) { reply, reply_name = q.pop }
+					reply, reply_name = requester.request(sender, tout)
 
 					return reply, reply_name
-				end
+				}
 			ensure
-				@requester.delete(q)
+				requester.close
 			end
 		end
-		
+
 		class Message
 			# Merge the given message with this message. A number of heuristics are
 			# applied in order to ensure that the result makes sense. For example,
@@ -57,18 +56,18 @@ class Resolv
 			def merge! (other)
 				# Authoritive Answer
 				@aa = @aa && other.aa
-				
+
 				@additional += other.additional
 				@answer += other.answer
 				@authority += other.authority
 				@question += other.question
-				
+
 				# Recursion Available
 				@ra = @ra || other.ra
-				
+
 				# Result Code (Error Code)
 				@rcode = other.rcode unless other.rcode == 0
-				
+
 				# Recursion Desired
 				@rd = @rd || other.rd
 			end

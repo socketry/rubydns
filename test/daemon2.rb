@@ -20,8 +20,6 @@ require 'rubygems'
 require 'rexec'
 require 'rexec/daemon'
 
-require 'etc'
-
 require 'rubygems'
 require 'rubydns'
 

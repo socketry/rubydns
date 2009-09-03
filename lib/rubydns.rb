@@ -85,6 +85,8 @@ module RubyDNS
 						begin
 							result = server.receive_data(packet)
 
+							server.logger.debug "Sending result to #{sender.inspect}:"
+							server.logger.debug "#{result.inspect}"
 							socket.send(result, 0, sender[2], sender[1])
 						rescue
 							server.logger.error "Error processing request!"
