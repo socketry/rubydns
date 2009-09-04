@@ -60,12 +60,19 @@ module RubyDNS
 		# the resolver and <tt>merge!</tt> the answer if one is received. If recursion is
 		# not requested, the result is <tt>failure!(:Refused)</tt>. If the resolver does
 		# not respond, the result is <tt>failure!(:NXDomain)</tt>
-		def passthrough! (resolver)
+		#
+		# If a block is supplied, this function yields with the reply and reply_name if
+		# successful. This could be used, for example, to update a cache.
+		def passthrough! (resolver, &block)
 			# Were we asked to recursively find this name?
 			if @query.rd
 				reply, reply_name = resolver.query(name, resource_class)
 
 				if reply
+					if block_given?
+						yield(reply, reply_name)
+					end
+
 					@answer.merge!(reply)
 				else
 					failure!(:NXDomain)
