@@ -16,6 +16,7 @@
 # Thanks to "jmorgan" who provided some basic ideas for how to do this
 # using Ruby: http://half-penny.org/computing/simple-ruby-dns-server
 
+require 'rubydnd/version'
 require 'rubydns/resolv'
 require 'rubydns/server'
 
