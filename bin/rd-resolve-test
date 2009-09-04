@@ -59,6 +59,8 @@ ARGV.options do |o|
 	o.on_tail("-h", "--help", "Show this help message.") { puts o; exit }
 end.parse!
 
+OPTIONS[:Nameservers] = ARGV
+
 if OPTIONS[:Nameservers].size > 0
 	$R = Resolv::DNS.new(:nameserver => ARGV)
 else
@@ -74,7 +76,7 @@ if OPTIONS[:Domains].size == 0
 	OPTIONS[:Domains] += ["www.google.com", "www.amazon.com", "www.apple.com", "www.microsoft.com"]
 	OPTIONS[:Domains] += ["www.rubygems.org", "www.ruby-lang.org", "www.slashdot.org", "www.lucidsystems.org"]
 	OPTIONS[:Domains] += ["www.facebook.com", "www.twitter.com", "www.myspace.com", "www.youtube.com"]
-	OPTIONS[:Domains] += ["www.oriontransfer.org", "www.oriontransfer.co.nz"]
+	OPTIONS[:Domains] += ["www.oriontransfer.co.nz", "www.digg.com"]
 end
 
 def random_domain
@@ -84,6 +86,7 @@ def random_domain
 end
 
 puts "Starting test with #{OPTIONS[:Domains].size} domains..."
+puts "Using nameservers: " + OPTIONS[:Nameservers].join(", ")
 puts "Only long running queries will be printed..."
 
 def resolve_domain
