@@ -31,12 +31,12 @@ module RubyDNS
 	#
 	# <tt>:interfaces</tt>:: A set of sockets or addresses as defined below.
 	#
-	# One important feature of DNS is the port it runs on. The <tt>options[:interfaces]</tt>
+	# One important feature of DNS is the port it runs on. The <tt>options[:listen]</tt>
 	# allows you to specify a set of network interfaces and ports to run the server on. This
 	# must be a list of <tt>[protocol, interface address, port]</tt>.
 	# 
 	#   INTERFACES = [[:udp, "0.0.0.0", 5300]]
-	#   RubyDNS::run_server(:interfaces => INTERFACES) do
+	#   RubyDNS::run_server(:listen => INTERFACES) do
 	#     ...
 	#   end
 	#
@@ -46,8 +46,8 @@ module RubyDNS
 	#   Process::Sys.setuid(server_uid)
 	#   INTERFACES = [socket]
 	#
-	# The default interface is <tt>[[:udp, "0.0.0.0", 53]]</tt>. The server needs to run
-	# as root for this to work, and thus should not be used in production environment.
+	# The default interface is <tt>[[:udp, "0.0.0.0", 53]]</tt>. The server typically needs
+	# to run as root for this to work, since port 53 is privileged.
 	#
 	def self.run_server (options = {}, &block)
 		server = RubyDNS::Server.new(&block)

@@ -3,11 +3,11 @@ Dir.chdir("../") do
   require 'lib/rubydns/version'
 
   Gem::Specification.new do |s|
-    s.name = "RubyDNS"
+    s.name = "rubydns"
     s.version = RubyDNS::VERSION::STRING
     s.date = "2009-09-04"
     s.summary = "A simple DNS server DSL for Ruby."
-    s.homepage = "http://wiki.oriontransfer.org/code:rubydns.git"
+    s.homepage = "http://www.oriontransfer.co.nz/software/ruby-dns"
     s.has_rdoc = true
     s.authors = ["Samuel Williams"]
     s.files = FileList["{lib,test}/**/*"] + ["bin/rd-resolve-test"] + ["README.rdoc"]
