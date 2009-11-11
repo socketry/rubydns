@@ -96,10 +96,10 @@ module RubyDNS
 				# Match failed against record_type?
 				case pattern[1]
 				when String
-					next if pattern[1] != record_type.upcase
+					next if pattern[1] != record_type
 					@logger.debug "Resource type #{record_type} matched"
 				when Array
-					next if pattern[1].include?(record_type.upcase)
+					next if pattern[1].include?(record_type)
 					@logger.debug "Resource type #{record_type} matched #{pattern[1].inspect}"
 				end
 
@@ -154,7 +154,7 @@ module RubyDNS
 				transaction = Transaction.new(self, query, question, resource_class, answer)
 
 				begin
-					process(transaction.name, transaction.record_type, transaction)
+					transaction.process
 				rescue
 					@logger.error "Exception thrown while processing #{transaction}!"
 					@logger.error "#{$!.class}: #{$!.message}"

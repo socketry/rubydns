@@ -15,6 +15,26 @@
 
 module RubyDNS
 	
+	# Turn a symbol or string name into a resource class. For example,
+	# convert <tt>:A</tt> into <tt>Resolv::DNS::Resource::IN::A</tt>
+	def self.lookup_resource_class(klass)
+		return nil if klass == nil
+		
+		if Symbol === klass
+			klass = klass.to_s
+		end
+		
+		if String === klass
+			if Resolv::DNS::Resource.const_defined?(klass)
+				return Resolv::DNS::Resource.const_get(klass)
+			elsif Resolv::DNS::Resource::IN.const_defined?(klass)
+				return Resolv::DNS::Resource::IN.const_get(klass)
+			end
+		end
+		
+		return klass
+	end
+	
 	# This class provides all details of a single DNS question and answer. This
 	# is used by the DSL to provide DNS related functionality.
 	class Transaction
@@ -54,6 +74,16 @@ module RubyDNS
 		# Suitable for debugging purposes
 		def to_s
 			"#{name} #{record_type}"
+		end
+
+		# Run a new query through the rules with the given name and resource type. The
+		# results of this query are appended to the current transactions <tt>answer</tt>.
+		def append_query!(name, resource_type = nil)
+			Transaction.new(@server, @query, name, RubyDNS.lookup_resource_class(resource_type) || @resource_class, @answer).process
+		end
+
+		def process
+			@server.process(name, record_type, self)
 		end
 
 		# Use the given resolver to respond to the question. This will <tt>query</tt>
