@@ -32,50 +32,50 @@ require 'rubydns'
 
 # Test using the following command
 # dig @localhost test.mydomain.org
+# dig +tcp @localhost test.mydomain.org
 
 # You might need to change the user name "daemon". This can be a user name or a user id.
 RUN_AS = "daemon"
 
-# UDP Socket does per packet reverse lookups unless this is set.
-UDPSocket.do_not_reverse_lookup = true
+INTERFACES = [
+	[:udp, "0.0.0.0", 53],
+	[:tcp, "0.0.0.0", 53]
+]
 
 # We need to be root in order to bind to privileged port
 if RExec.current_user != "root"
-  $stderr.puts "Sorry, this command needs to be run as root!"
-  exit 1
+	$stderr.puts "Sorry, this command needs to be run as root!"
+	exit 1
 end
 
 # The Daemon itself
 class Server < RExec::Daemon::Base
-  @@var_directory = File.dirname(__FILE__)
+	@@var_directory = File.dirname(__FILE__)
 
-  def self.run
-    # Bind to port 53 (UDP)
-    socket = UDPSocket.new
-    socket.bind("0.0.0.0", 53)
+	def self.run
+		# Don't buffer output (for debug purposes)
+		$stderr.sync = true
 
-    # Drop priviledges
-    RExec.change_user(RUN_AS)
+		# Use upstream DNS for name resolution (These ones are Orcon DNS in NZ)
+		$R = Resolv::DNS.new(:nameserver => ["60.234.1.1", "60.234.2.2"])
 
-    # Don't buffer output (for debug purposes)
-    $stderr.sync = true
+		# Start the RubyDNS server
+		RubyDNS::run_server(:listen => INTERFACES) do
+			on(:start) do
+				RExec.change_user(RUN_AS)
+			end
 
-    # Use upstream DNS for name resolution (These ones are Orcon DNS in NZ)
-    $R = Resolv::DNS.new(:nameserver => ["60.234.1.1", "60.234.2.2"])
+			match("test.mydomain.org", :A) do |transaction|
+				transaction.respond!("10.0.0.80")
+			end
 
-    # Start the RubyDNS server
-    RubyDNS::run_server(:listen => [socket]) do
-      match("test.mydomain.org", :A) do |transaction|
-        transaction.respond!("10.0.0.80")
-      end
-
-      # Default DNS handler
-      otherwise do |transaction|
-        logger.info "Passthrough: #{transaction}"
-        transaction.passthrough!($R)
-      end
-    end
-  end
+			# Default DNS handler
+			otherwise do |transaction|
+				logger.info "Passthrough: #{transaction}"
+				transaction.passthrough!($R)
+			end
+		end
+	end
 end
 
 # RExec daemon runner

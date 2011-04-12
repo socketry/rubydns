@@ -31,6 +31,7 @@ module RubyDNS
 		#   end
 		#
 		def initialize(&block)
+			@events = {}
 			@rules = []
 			@otherwise = nil
 
@@ -68,6 +69,23 @@ module RubyDNS
 			@rules << [pattern, Proc.new(&block)]
 		end
 
+		# Register a named event which may be invoked later using #fire
+		#   on(:start) do |server|
+		#     RExec.change_user(RUN_AS)
+		#   end
+		def on(event_name, &block)
+			@events[event_name] = Proc.new(&block)
+		end
+		
+		# Fire the named event, which must have been registered using on.
+		def fire(event_name)
+			callback = @events[event_name]
+			
+			if callback
+				callback.call(self)
+			end
+		end
+		
 		# Specify a default block to execute if all other rules fail to match.
 		# This block is typially used to pass the request on to another server
 		# (i.e. recursive request).
@@ -138,7 +156,7 @@ module RubyDNS
 
 		# Process an incoming DNS message. Returns a serialized message to be
 		# sent back to the client.
-		def receive_data(data)
+		def receive_data(data, &block)
 			query = Resolv::DNS::Message::decode(data)
 
 			# Setup answer
@@ -164,7 +182,11 @@ module RubyDNS
 				end
 			end
 
-			return answer.encode
+			if block_given?
+				yield answer
+			else
+				return answer
+			end
 		end
 	end
 end

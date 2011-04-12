@@ -5,19 +5,21 @@ Dir.chdir("../") do
   Gem::Specification.new do |s|
     s.name = "rubydns"
     s.version = RubyDNS::VERSION::STRING
-    s.date = "2009-09-04"
+    s.date = "2011-04-13"
     s.summary = "A simple DNS server DSL for Ruby."
     s.homepage = "http://www.oriontransfer.co.nz/software/ruby-dns"
     s.has_rdoc = true
     s.authors = ["Samuel Williams"]
-    s.files = FileList["{lib,test}/**/*"] + ["bin/rd-resolve-test"] + ["README.rdoc"]
+    s.files = FileList["{lib,test,bin}/**/*"] + ["README.rdoc"]
 
     s.executables << "rd-resolve-test"
+	s.executables << "rd-dns-check"
 
     s.extra_rdoc_files = ["README.rdoc"]
     s.rdoc_options << '--main' << 'README.rdoc'
 
     s.add_dependency("rexec")
+	s.add_dependency("eventmachine")
   end
 end
 

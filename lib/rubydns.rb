@@ -25,6 +25,8 @@ require 'logger'
 require 'rexec'
 require 'rexec/daemon'
 
+require 'rubydns/handler'
+
 module RubyDNS
 	
 	# Run a server with the given rules. A number of options can be supplied:
@@ -51,58 +53,26 @@ module RubyDNS
 	#
 	def self.run_server (options = {}, &block)
 		server = RubyDNS::Server.new(&block)
-		threads = ThreadGroup.new
-
 		server.logger.info "Starting server..."
-
-		options[:listen] ||= [[:udp, "0.0.0.0", 53]]
-
-		sockets = []
 		
-		# Setup server sockets
-		options[:listen].each do |spec|
-			if spec.kind_of?(BasicSocket)
-				sockets << spec
-			elsif spec[0] == :udp
-				socket = UDPSocket.new
-				socket.bind(spec[1], spec[2])
-
-				sockets << socket
-			elsif spec[0] == :tcp
-				server.logger.warn "Sorry, TCP is not currently supported!"
-			end
-		end
+		options[:listen] ||= [[:udp, "0.0.0.0", 53], [:tcp, "0.0.0.0", 53]]
 		
-		begin
-			# Listen for incoming packets
-			while true
-				ready = IO.select(sockets)
-
-				ready[0].each do |socket|
-					packet, sender = socket.recvfrom(1024*5)
-					server.logger.debug "Receiving incoming query..."
-
-					thr = Thread.new do
-						begin
-							result = server.receive_data(packet)
-
-							server.logger.debug "Sending result to #{sender.inspect}:"
-							server.logger.debug "#{result.inspect}"
-							socket.send(result, 0, sender[2], sender[1])
-						rescue
-							server.logger.error "Error processing request!"
-							server.logger.error "#{$!.class}: #{$!.message}"
-							$!.backtrace.each { |at| server.logger.error at }
-						end
-					end
-					
-					threads.add thr
+		EventMachine.run do
+			server.fire(:setup)
+			
+			# Setup server sockets
+			options[:listen].each do |spec|
+				if spec[0] == :udp
+					EventMachine.open_datagram_socket(spec[1], spec[2], UDPHandler, server)
+				elsif spec[0] == :tcp
+					EventMachine.start_server(spec[1], spec[2], TCPHandler, server)
 				end
 			end
-		rescue Interrupt
-			server.logger.info "Server interrupted - stopping #{threads.list.size} request(s)."
-			threads.list.each { |thr| thr.join }
+			
+			server.fire(:start)
 		end
+		
+		server.fire(:stop)
 	end
 end
 

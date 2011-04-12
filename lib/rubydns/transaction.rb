@@ -44,7 +44,7 @@ module RubyDNS
 			@question = question
 			@resource_class = resource_class
 			@answer = answer
-
+			
 			@question_appended = false
 		end
 
