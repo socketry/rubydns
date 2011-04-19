@@ -5,7 +5,6 @@ Dir.chdir("../") do
   Gem::Specification.new do |s|
     s.name = "rubydns"
     s.version = RubyDNS::VERSION::STRING
-    s.date = "2011-04-13"
     s.summary = "A simple DNS server DSL for Ruby."
     s.homepage = "http://www.oriontransfer.co.nz/software/ruby-dns"
     s.has_rdoc = true
