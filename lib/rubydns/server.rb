@@ -185,7 +185,7 @@ module RubyDNS
 			if block_given?
 				yield answer
 			else
-				return answer
+				answer.encode
 			end
 		end
 	end
