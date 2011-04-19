@@ -17,7 +17,9 @@ module RubyDNS
 	
 	# Turn a symbol or string name into a resource class. For example,
 	# convert <tt>:A</tt> into <tt>Resolv::DNS::Resource::IN::A</tt>
-	def self.lookup_resource_class(klass)
+	# Provide a second argument (top) to specify a namespace where 
+	# klass should be resolved, e.g. <tt>Resolv::DNS::Resource::IN</tt>.
+	def self.lookup_resource_class(klass, top = nil)
 		return nil if klass == nil
 		
 		if Symbol === klass
@@ -25,14 +27,39 @@ module RubyDNS
 		end
 		
 		if String === klass
-			if Resolv::DNS::Resource.const_defined?(klass)
-				return Resolv::DNS::Resource.const_get(klass)
-			elsif Resolv::DNS::Resource::IN.const_defined?(klass)
-				return Resolv::DNS::Resource::IN.const_get(klass)
-			end
+			top ||= Resolv::DNS::Resource::IN
+			klass = self.find_constant(top, klass.split("::"))
 		end
 		
 		return klass
+	end
+	
+	def self.constantize(names)
+		top = Object
+	
+		names.each do |name|
+			if top.const_defined?(name)
+				top = top.const_get(name)
+			else
+				return nil
+			end
+		end
+	
+		top
+	end
+
+	def self.find_constant(top, klass)
+		names = top.name.split("::")
+	
+		while names.size
+			object = self.constantize(names + klass)
+		
+			return object if object
+		
+			names.pop
+		end
+	
+		return nil
 	end
 	
 	# This class provides all details of a single DNS question and answer. This
@@ -65,7 +92,14 @@ module RubyDNS
 		def record_type
 			@resource_class.name.split("::").last
 		end
-
+		
+		# Tries to find a resource class within the current resource category, which is
+		# typically (but not always) <tt>IN</tt>. Uses the requested resource class as
+		# a starting point.
+		def lookup_resource_class(klass)
+			return RubyDNS::lookup_resource_class(klass, @resource_class)
+		end
+		
 		# Return the name of the question, which is typically the requested hostname.
 		def name
 			@question.to_s
@@ -78,8 +112,8 @@ module RubyDNS
 
 		# Run a new query through the rules with the given name and resource type. The
 		# results of this query are appended to the current transactions <tt>answer</tt>.
-		def append_query!(name, resource_type = nil)
-			Transaction.new(@server, @query, name, RubyDNS.lookup_resource_class(resource_type) || @resource_class, @answer).process
+		def append_query!(name, resource_class = nil)
+			Transaction.new(@server, @query, name, lookup_resource_class(resource_class) || @resource_class, @answer).process
 		end
 
 		def process
@@ -133,15 +167,17 @@ module RubyDNS
 		# http://www.ruby-doc.org/stdlib/libdoc/resolv/rdoc/index.html
 		def respond! (*data)
 			options = data.last.kind_of?(Hash) ? data.pop : {}
+			resource_class = lookup_resource_class(options[:resource_class]) || @resource_class
 			
-			case options[:resource_class]
-			when nil
-				append!(@resource_class.new(*data), options)
-			when Class
-				append!(options[:resource_class].new(*data), options)
-			else
-				raise ArgumentError, "Could not instantiate resource!"
+			if resource_class == nil
+				raise ArgumentError, "Could not instantiate resource #{resource_class}!"
 			end
+			
+			@server.logger.info "Resource class: #{resource_class.inspect}"
+			resource = resource_class.new(*data)
+			@server.logger.info "Resource: #{resource.inspect}"
+			
+			append!(resource, options)
 		end
 
 		# Append a given set of resources to the answer. The last argument can 
@@ -161,9 +197,11 @@ module RubyDNS
 			options[:name] ||= @question.to_s + "."
 
 			resources.each do |resource|
+				@server.logger.info "add_answer: #{resource.inspect} #{resource.class::TypeValue} #{resource.class::ClassValue}"
 				@answer.add_answer(options[:name], options[:ttl], resource)
 			end
 
+			# Raise an exception if there was something wrong with the resource
 			@answer.encode
 
 			true
