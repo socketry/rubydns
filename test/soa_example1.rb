@@ -59,7 +59,7 @@ RubyDNS::run_server(:listen => [[:udp, "0.0.0.0", 5300]]) do
 	end
 
 	match("www.mydomain.org", :A) do |transaction|
-		transaction.respond!("10.0.0.80", :record_type => :A)
+		transaction.respond!("10.0.0.80")
 	end
 	
 	match("ns.mydomain.org", :A) do |transaction|
