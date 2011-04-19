@@ -114,10 +114,10 @@ module RubyDNS
 				# Match failed against record_type?
 				case pattern[1]
 				when String
-					next if pattern[1] != record_type
+					next unless pattern[1] == record_type
 					@logger.debug "Resource type #{record_type} matched"
 				when Array
-					next if pattern[1].include?(record_type)
+					next unless pattern[1].include?(record_type)
 					@logger.debug "Resource type #{record_type} matched #{pattern[1].inspect}"
 				end
 
