@@ -144,6 +144,16 @@ module RubyDNS
 					else
 						@logger.debug "Query #{name} failed to match against #{pattern[0]}"
 					end
+				when Proc
+					if pattern[0].call(name)
+						@logger.debug "Query #{name} matched #{pattern[0]}"
+						if rule[1].call(*args)
+							@logger.debug "Rule returned successfully"
+							return
+						end
+					else
+						@logger.debug "Query #{name} failed to match against #{pattern[0]}"
+					end
 				end
 			end
 
