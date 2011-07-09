@@ -57,7 +57,7 @@ class Server < RExec::Daemon::Base
 		$stderr.sync = true
 
 		# Use upstream DNS for name resolution (These ones are Orcon DNS in NZ)
-		$R = Resolv::DNS.new(:nameserver => ["60.234.1.1", "60.234.2.2"])
+		$R = Resolv::DNS.new(:nameserver => ["8.8.8.8"])
 
 		# Start the RubyDNS server
 		RubyDNS::run_server(:listen => INTERFACES) do
