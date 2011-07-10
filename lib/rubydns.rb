@@ -62,6 +62,7 @@ module RubyDNS
 			
 			# Setup server sockets
 			options[:listen].each do |spec|
+				server.logger.info "Listening on #{spec.join(':')}"
 				if spec[0] == :udp
 					EventMachine.open_datagram_socket(spec[1], spec[2], UDPHandler, server)
 				elsif spec[0] == :tcp
