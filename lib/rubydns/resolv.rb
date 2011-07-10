@@ -20,7 +20,7 @@ require 'resolv'
 
 class Resolv
 	class DNS
-		# Queries the given DNS server and returns its response in its entirety. 
+		# Queries the given DNS server and returns its response in its entirety.
 		# This allows such responses to be passed upstream with little or no
 		# modification/reinterpretation.
 		def query(name, typeclass)
