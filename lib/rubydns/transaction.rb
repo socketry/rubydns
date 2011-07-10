@@ -120,31 +120,48 @@ module RubyDNS
 			@server.process(name, record_type, self)
 		end
 
-		# Use the given resolver to respond to the question. This will <tt>query</tt>
-		# the resolver and <tt>merge!</tt> the answer if one is received. If recursion is
+		# Use the given resolver to respond to the question. The default functionality is
+		# implemented by passthrough, and if a reply is received, it will be merged with the
+		# answer for this transaction.
+		#
+		# If a block is supplied, this function yields with the reply and reply_name if
+		# successful. This could be used, for example, to update a cache or modify the
+		# reply.
+		def passthrough! (resolver, options = {}, &block)
+			passthrough(resolver, options) do |reply, reply_name|
+				if block_given?
+					yield reply, reply_name
+				end
+				
+				@answer.merge!(reply)
+			end
+			
+			true
+		end
+		
+		# Use the given resolver to respond to the question. If recursion is
 		# not requested, the result is <tt>failure!(:Refused)</tt>. If the resolver does
 		# not respond, the result is <tt>failure!(:NXDomain)</tt>
 		#
 		# If a block is supplied, this function yields with the reply and reply_name if
-		# successful. This could be used, for example, to update a cache.
-		def passthrough! (resolver, &block)
-			# Were we asked to recursively find this name?
-			if @query.rd
+		# successful. This block is responsible for doing something useful with the reply,
+		# such as merging it or conditionally discarding it.
+		#
+		# A second argument, options, provides some control over the passthrough process.
+		# :force => true, ensures that the query will occur even if recursion is not requested.
+		def passthrough (resolver, options = {}, &block)
+			if @query.rd || options[:force]
 				reply, reply_name = resolver.query(name, resource_class)
-
+				
 				if reply
-					if block_given?
-						yield(reply, reply_name)
-					end
-
-					@answer.merge!(reply)
+					yield reply, reply_name
 				else
 					failure!(:NXDomain)
 				end
 			else
 				failure!(:Refused)
 			end
-
+			
 			true
 		end
 
