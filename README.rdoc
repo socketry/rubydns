@@ -53,7 +53,6 @@ After starting this server you can test it using dig:
 
 == Todo
 
-* Better support for logging output
 * Support for more features of DNS such as zone transfer
 * Support reverse records more easily
 * Better support for deferred requests/concurrency.
