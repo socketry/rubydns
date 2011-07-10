@@ -12,7 +12,7 @@ module RubyDNS
 		end
 		
 		def self.process(server, data, &block)
-			server.logger.debug "Receiving incoming query..."
+			server.logger.debug "Receiving incoming query (#{data.size} bytes)..."
 			
 			begin
 				server.receive_data(data, &block)
@@ -27,6 +27,8 @@ module RubyDNS
 		def receive_data(data)
 			UDPHandler.process(@server, data) do |answer|
 				data = answer.encode
+				
+				@server.logger.debug "Writing response to client (#{data.size} bytes)"
 				
 				if (data.size > UDP_TRUNCATION_SIZE)
 					@server.logger.warn "Response via UDP was larger than #{UDP_TRUNCATION_SIZE}!"
@@ -71,6 +73,8 @@ module RubyDNS
 				
 				UDPHandler.process(@server, data) do |answer|
 					data = answer.encode
+					
+					@server.logger.debug "Writing response to client (#{data.size} bytes)"
 					
 					self.send_data([data.size].pack('n'))
 					self.send_data(data)
