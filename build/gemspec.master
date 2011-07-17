@@ -1,24 +1,25 @@
 
 Dir.chdir("../") do
-  require 'lib/rubydns/version'
+	require 'lib/rubydns/version'
 
-  Gem::Specification.new do |s|
-    s.name = "rubydns"
-    s.version = RubyDNS::VERSION::STRING
-    s.summary = "A simple DNS server DSL for Ruby."
-    s.homepage = "http://www.oriontransfer.co.nz/software/ruby-dns"
-    s.has_rdoc = true
-    s.authors = ["Samuel Williams"]
-    s.files = FileList["{lib,test,bin}/**/*"] + ["README.rdoc"]
+	Gem::Specification.new do |s|
+		s.name = "rubydns"
+		s.version = RubyDNS::VERSION::STRING
+		s.authors = ["Samuel Williams"]
+		s.email = "samuel@oriontransfer.org"
+		s.homepage = "http://www.oriontransfer.co.nz/gems/rubydns"
+		s.platform = Gem::Platform::RUBY
+		s.summary = "A simple DNS server DSL for Ruby."
 
-    s.executables << "rd-resolve-test"
-	s.executables << "rd-dns-check"
+		s.files = FileList["{lib,test,bin}/**/*"] + ["README.md"]
 
-    s.extra_rdoc_files = ["README.rdoc"]
-    s.rdoc_options << '--main' << 'README.rdoc'
+		s.executables << "rd-resolve-test"
+		s.executables << "rd-dns-check"
 
-    s.add_dependency("rexec")
-	s.add_dependency("eventmachine")
-  end
+		s.add_dependency("rexec")
+		s.add_dependency("eventmachine")
+		
+		s.has_rdoc = "yard"
+	end
 end
 
