@@ -214,7 +214,7 @@ module RubyDNS
 			options[:name] ||= @question.to_s + "."
 
 			resources.each do |resource|
-				@server.logger.info "add_answer: #{resource.inspect} #{resource.class::TypeValue} #{resource.class::ClassValue}"
+				@server.logger.debug "add_answer: #{resource.inspect} #{resource.class::TypeValue} #{resource.class::ClassValue}"
 				@answer.add_answer(options[:name], options[:ttl], resource)
 			end
 
