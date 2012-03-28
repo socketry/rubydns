@@ -27,7 +27,7 @@ class Resolv
 		# modification/reinterpretation.
 		def query(name, typeclass)
 			lazy_initialize
-			requester = make_requester
+			requester = make_udp_requester
 			senders = {}
 			begin
 				@config.resolv(name) {|candidate, tout, nameserver|
