@@ -23,23 +23,39 @@ require 'stringio'
 
 module RubyDNS
 	
-	UDP_TRUNCATION_SIZE = 512
-	
 	module UDPHandler
+		UDP_TRUNCATION_SIZE = 512
+
 		def initialize(server)
 			@server = server
 		end
-		
+
 		def self.process(server, data, &block)
-			server.logger.debug "Receiving incoming query (#{data.size} bytes)..."
-			
+			server.logger.debug "Receiving incoming query (#{data.bytesize} bytes)..."
+			query = nil
+
 			begin
-				server.receive_data(data, &block)
+				query = Resolv::DNS::Message::decode(data)
+
+				return server.process_query(query, &block)
 			rescue
 				server.logger.error "Error processing request!"
 				server.logger.error "#{$!.class}: #{$!.message}"
 
 				$!.backtrace.each { |at| server.logger.error at }
+
+				# Encoding may fail, so we need to handle this particular case:
+				server_failure = Resolv::DNS::Message::new(query ? query.id : 0)
+				server_failure.qr = 1
+				server_failure.opcode = query ? query.opcode : 0
+				server_failure.aa = 1
+				server_failure.rd = 0
+				server_failure.ra = 0
+
+				server_failure.rcode = Resolv::DNS::RCode::ServFail
+
+				# We can't do anything at this point...
+				yield server_failure
 			end
 		end
 		
@@ -47,13 +63,14 @@ module RubyDNS
 			UDPHandler.process(@server, data) do |answer|
 				data = answer.encode
 				
-				@server.logger.debug "Writing response to client (#{data.size} bytes)"
+				@server.logger.debug "Writing response to client (#{data.bytesize} bytes) via UDP..."
 				
-				if (data.size > UDP_TRUNCATION_SIZE)
+				if data.bytesize > UDP_TRUNCATION_SIZE
 					@server.logger.warn "Response via UDP was larger than #{UDP_TRUNCATION_SIZE}!"
 					
+					# Reencode data with truncation flag marked as true:
 					answer.tc = 1
-					data = answer.encode[0,UDP_TRUNCATION_SIZE]
+					data = answer.encode.byteslice(0,UDP_TRUNCATION_SIZE)
 				end
 				
 				self.send_data(data)
@@ -73,29 +90,30 @@ module RubyDNS
 		end
 		
 		def receive_data(data)
+			# We buffer data until we've received the entire packet:
 			@buffer ||= StringIO.new
 			@buffer.write(data)
 			
-			# Message includes a 16-bit length field
+			# Message includes a 16-bit length field.. we need to see if we have received it yet:
 			if @length == nil
 				if (@buffer.size - @processed) < 2
 					raise LengthError.new("Malformed message smaller than two bytes received")
 				end
 				
-				@length = @buffer.string[@processed, 2].unpack('n')[0]
+				# Grab the length field:
+				@length = @buffer.string.byteslice(@processed, 2).unpack('n')[0]
 				@processed += 2
 			end
 			
-			
 			if (@buffer.size - @processed) >= @length
-				data = @buffer.string[@processed, @length]
+				data = @buffer.string.byteslice(@processed, @length)
 				
 				UDPHandler.process(@server, data) do |answer|
 					data = answer.encode
 					
-					@server.logger.debug "Writing response to client (#{data.size} bytes)"
+					@server.logger.debug "Writing response to client (#{data.bytesize} bytes) via TCP..."
 					
-					self.send_data([data.size].pack('n'))
+					self.send_data([data.bytesize].pack('n'))
 					self.send_data(data)
 				end
 				

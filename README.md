@@ -26,12 +26,15 @@ This is copied from `test/example1.rb`. It has been simplified slightly.
 	$R = Resolv::DNS.new
 
 	RubyDNS::run_server do
+		Name = Resolv::DNS::Name
+		IN = Resolv::DNS::Resource::IN
+		
 		# For this exact address record, return an IP address
-		match("dev.mydomain.org", :A) do |transaction|
+		match("dev.mydomain.org", IN::A) do |transaction|
 			transaction.respond!("10.0.0.80")
 		end
 
-		match(/^test([0-9]+).mydomain.org$/, :A) do |match_data, transaction|
+		match(/^test([0-9]+).mydomain.org$/, IN::A) do |match_data, transaction|
 			offset = match_data[1].to_i
 
 			if offset > 0 && offset < 10
@@ -55,6 +58,22 @@ After starting this server you can test it using dig:
 	dig @localhost test1.mydomain.org
 	dig @localhost dev.mydomain.org
 	dig @localhost google.com
+
+Compatibility
+-------------
+
+From RubyDNS version `0.4.0`, the recommended minimum Ruby version is `1.9.3` for complete support. Some features may not work as expected on Ruby version `1.8.x` and it is not tested significantly.
+
+### Migrating from RubyDNS 0.3.x to 0.4.x ###
+
+Due to changes in `resolv.rb`, superficial parts of RubyDNS have changed. Rather than using `:A` to specify A-records, one must now use the class name.
+
+	match(..., :A)
+
+becomes
+
+	IN = Resolv::DNS::Resource::IN
+	match(..., IN::A)
 
 Todo
 ----

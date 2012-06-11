@@ -26,11 +26,10 @@ module RubyDNS
 	# are used to match against incoming DNS questions. These rules are used to
 	# generate responses which are either DNS resource records or failures.
 	class Server
-		
 		# Instantiate a server with a block
 		#
 		#   server = Server.new do
-		#     match(/server.mydomain.com/, :A) do |transaction|
+		#     match(/server.mydomain.com/, IN::A) do |transaction|
 		#       transaction.respond!("1.2.3.4")
 		#     end
 		#   end
@@ -55,22 +54,10 @@ module RubyDNS
 		# types which the rule matches against.
 		# 
 		#   match("www.google.com")
-		#   match("gmail.com", :MX)
-		#   match(/g?mail.(com|org|net)/, [:MX, :A])
+		#   match("gmail.com", IN::MX)
+		#   match(/g?mail.(com|org|net)/, [IN::MX, IN::A])
 		#
-		def match (*pattern, &block)
-			# Normalize pattern
-			case pattern[1]
-			when nil
-				# Do nothing
-			when String
-				pattern[1] = pattern[1].upcase
-			when Symbol
-				pattern[1] = pattern[1].to_s.upcase
-			when Array
-				pattern[1] = pattern[1].collect { |v| v.to_s.upcase }
-			end
-
+		def match(*pattern, &block)
 			@rules << [pattern, Proc.new(&block)]
 		end
 
@@ -108,22 +95,22 @@ module RubyDNS
 		#
 		# If a rule returns false, it is considered that the rule failed and
 		# futher matching is carried out.
-		def process(name, record_type, *args)
-			@logger.debug "Searching for #{name} #{record_type}"
+		def process(name, resource_class, *args)
+			@logger.debug "Searching for #{name} #{resource_class.name}"
 
 			@rules.each do |rule|
 				@logger.debug "Checking rule #{rule[0].inspect}..."
 				
 				pattern = rule[0]
 
-				# Match failed against record_type?
+				# Match failed against resource_class?
 				case pattern[1]
-				when String
-					next unless pattern[1] == record_type
-					@logger.debug "Resource type #{record_type} matched"
+				when Class
+					next unless pattern[1] == resource_class
+					@logger.debug "Resource class #{resource_class.name} matched"
 				when Array
-					next unless pattern[1].include?(record_type)
-					@logger.debug "Resource type #{record_type} matched #{pattern[1].inspect}"
+					next unless pattern[1].include?(resource_class)
+					@logger.debug "Resource class #{resource_class} matched #{pattern[1].inspect}"
 				end
 
 				# Match succeeded against name?
@@ -167,15 +154,13 @@ module RubyDNS
 			if @otherwise
 				@otherwise.call(*args)
 			else
-				@logger.warn "Failed to handle #{name} #{record_type}!"
+				@logger.warn "Failed to handle #{name} #{resource_class.name}!"
 			end
 		end
 
 		# Process an incoming DNS message. Returns a serialized message to be
 		# sent back to the client.
-		def receive_data(data, &block)
-			query = Resolv::DNS::Message::decode(data)
-
+		def process_query(query, &block)
 			# Setup answer
 			answer = Resolv::DNS::Message::new(query.id)
 			answer.qr = 1                 # 0 = Query, 1 = Response
@@ -202,7 +187,7 @@ module RubyDNS
 			if block_given?
 				yield answer
 			else
-				answer.encode
+				return answer
 			end
 		end
 	end

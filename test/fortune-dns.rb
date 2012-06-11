@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# encoding: utf-8
 
 # Copyright (c) 2009, 2011 Samuel G. D. Williams. <http://www.oriontransfer.co.nz>
 # 
@@ -38,9 +39,17 @@ if RExec.current_user != "root"
 	exit 1
 end
 
+# dig @localhost fortune CNAME
+# 
+
+# HELLO = "こんいちは".force_encoding('ASCII-8BIT')
+
 # The Daemon itself
 class FortuneDNS < RExec::Daemon::Base
 	@@var_directory = File.dirname(__FILE__)
+
+	Name = Resolv::DNS::Name
+	IN = Resolv::DNS::Resource::IN
 
 	def self.run
 		# Don't buffer output (for debug purposes)
@@ -53,31 +62,42 @@ class FortuneDNS < RExec::Daemon::Base
 		RubyDNS::run_server do
 			on(:start) do
 				RExec.change_user(RUN_AS)
+				if ARGV.include?("--debug")
+					@logger.level = Logger::DEBUG
+				else
+					@logger.level = Logger::WARN
+				end
 			end
-
-			match(/(.*)\.fortune/, :TXT) do |match, transaction|
+			
+			match(/stats\.fortune/, IN::TXT) do |match, transaction|
+				$stderr.puts "Sending stats: #{stats.inspect}"
+				transaction.respond!(stats.inspect)
+			end
+			
+			match(/(.+)\.fortune/, IN::TXT) do |match, transaction|
 				fortune = cache[match[1]]
 				stats[:requested] += 1
 				
 				if fortune
-					transaction.respond!(fortune)
+					transaction.respond!(*fortune.chunked)
 				else
-					transaction.failure(:NXDomain)
+					transaction.failure!(:NXDomain)
 				end
 			end
 			
-			match(/stats.fortune/, :TXT) do |match, transaction|
-				transaction.respond!(stats.inspect)
-			end
-			
-			match(/fortune/, [:CNAME]) do |match, transaction|
-				fortune = `fortune -s`.gsub(/\s+/, " ").strip
+			match(/fortune/, [IN::CNAME, IN::TXT]) do |match, transaction|
+				fortune = `fortune`.gsub(/\s+/, " ").strip
 				checksum = Digest::MD5.hexdigest(fortune)
 				cache[checksum] = fortune
 				
-				name = Resolv::DNS::Name.create(checksum + ".fortune")
+				transaction.respond!("Text Size: #{fortune.size} Byte Size: #{fortune.bytesize}", :resource_class => IN::TXT, :ttl => 0)
+				transaction.respond!(Name.create(checksum + ".fortune"), :resource_class => IN::CNAME, :ttl => 0)
+			end
+			
+			match(/short.fortune/, IN::TXT) do |match, transation|
+				fortune = `fortune -s`.gsub(/\s+/, " ").strip
 				
-				transaction.respond!(name, :resource_class => :CNAME, :ttl => 0)
+				transaction.respond!(*fortune.chunked, :ttl => 0)
 			end
 			
 			# Default DNS handler

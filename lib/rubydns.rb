@@ -19,7 +19,15 @@
 # THE SOFTWARE.
 
 require 'rubydns/version'
-require 'rubydns/resolv'
+
+if RUBY_VERSION < "1.9"
+	require 'rubydns/extensions/resolv-1.8'
+	require 'rubydns/extensions/string-1.8'
+else
+	require 'rubydns/extensions/resolv-1.9'
+	require 'rubydns/extensions/string-1.9'
+end
+
 require 'rubydns/server'
 
 require 'logger'
