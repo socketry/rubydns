@@ -25,11 +25,12 @@ require 'rubydns'
 
 $R = Resolv::DNS.new
 Name = Resolv::DNS::Name
+IN = Resolv::DNS::Resource::IN
 
 RubyDNS::run_server(:listen => [[:udp, "0.0.0.0", 5300]]) do
 	# SOA Record
 	#   dig @localhost -p 5300 SOA mydomain.org
-	match("mydomain.org", :SOA) do |transaction|
+	match("mydomain.org", IN::SOA) do |transaction|
 		#
 		# For more details about these headers please see:
 		#   http://www.ripe.net/ripe/docs/ripe-203.html
@@ -48,26 +49,26 @@ RubyDNS::run_server(:listen => [[:udp, "0.0.0.0", 5300]]) do
 	
 	# Default NS record
 	#   dig @localhost -p 5300 NS
-	match("", :NS) do |transaction|
+	match("", IN::NS) do |transaction|
 		transaction.respond!(Name.create("ns.mydomain.org."))
 	end
 
 	# For this exact address record, return an IP address
 	#   dig @localhost -p 5300 CNAME bob.mydomain.org
-	match(/([^.]+).mydomain.org/, :CNAME) do |match_data, transaction|
+	match(/([^.]+).mydomain.org/, IN::CNAME) do |match_data, transaction|
 		transaction.respond!(Name.create("www.mydomain.org"))
-		transaction.append_query!("www.mydomain.org", :A)
+		transaction.append_query!("www.mydomain.org", IN::A)
 	end
 
-	match("80.0.0.10.in-addr.arpa", :PTR) do |transaction|
+	match("80.0.0.10.in-addr.arpa", IN::PTR) do |transaction|
 		transaction.respond!(Name.create("www.mydomain.org."))
 	end
 
-	match("www.mydomain.org", :A) do |transaction|
+	match("www.mydomain.org", IN::A) do |transaction|
 		transaction.respond!("10.0.0.80")
 	end
 	
-	match("ns.mydomain.org", :A) do |transaction|
+	match("ns.mydomain.org", IN::A) do |transaction|
 		transaction.respond!("10.0.0.10")
 	end
 	

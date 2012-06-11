@@ -19,54 +19,7 @@
 # THE SOFTWARE.
 
 module RubyDNS
-	
-	# Turn a symbol or string name into a resource class. For example,
-	# convert <tt>:A</tt> into <tt>Resolv::DNS::Resource::IN::A</tt>
-	# Provide a second argument (top) to specify a namespace where 
-	# klass should be resolved, e.g. <tt>Resolv::DNS::Resource::IN</tt>.
-	def self.lookup_resource_class(klass, top = nil)
-		return nil if klass == nil
-		
-		if Symbol === klass
-			klass = klass.to_s
-		end
-		
-		if String === klass
-			top ||= Resolv::DNS::Resource::IN
-			klass = self.find_constant(top, klass.split("::"))
-		end
-		
-		return klass
-	end
-	
-	def self.constantize(names)
-		top = Object
-	
-		names.each do |name|
-			if top.const_defined?(name)
-				top = top.const_get(name)
-			else
-				return nil
-			end
-		end
-	
-		top
-	end
 
-	def self.find_constant(top, klass)
-		names = top.name.split("::")
-	
-		while names.size
-			object = self.constantize(names + klass)
-		
-			return object if object
-		
-			names.pop
-		end
-	
-		return nil
-	end
-	
 	# This class provides all details of a single DNS question and answer. This
 	# is used by the DSL to provide DNS related functionality.
 	class Transaction
@@ -92,18 +45,6 @@ module RubyDNS
 		
 		# The current full answer to the incoming query.
 		attr :answer
-
-		# Return the type of record (eg. <tt>A</tt>, <tt>MX</tt>) as a <tt>String</tt>.
-		def record_type
-			@resource_class.name.split("::").last
-		end
-		
-		# Tries to find a resource class within the current resource category, which is
-		# typically (but not always) <tt>IN</tt>. Uses the requested resource class as
-		# a starting point.
-		def lookup_resource_class(klass)
-			return RubyDNS::lookup_resource_class(klass, @resource_class)
-		end
 		
 		# Return the name of the question, which is typically the requested hostname.
 		def name
@@ -112,17 +53,17 @@ module RubyDNS
 
 		# Suitable for debugging purposes
 		def to_s
-			"#{name} #{record_type}"
+			"#{name} #{@resource_class.name}"
 		end
 
 		# Run a new query through the rules with the given name and resource type. The
 		# results of this query are appended to the current transactions <tt>answer</tt>.
 		def append_query!(name, resource_class = nil)
-			Transaction.new(@server, @query, name, lookup_resource_class(resource_class) || @resource_class, @answer).process
+			Transaction.new(@server, @query, name, resource_class || @resource_class, @answer).process
 		end
 
 		def process
-			@server.process(name, record_type, self)
+			@server.process(name, @resource_class, self)
 		end
 
 		# Use the given resolver to respond to the question. The default functionality is
@@ -189,7 +130,7 @@ module RubyDNS
 		# http://www.ruby-doc.org/stdlib/libdoc/resolv/rdoc/index.html
 		def respond! (*data)
 			options = data.last.kind_of?(Hash) ? data.pop : {}
-			resource_class = lookup_resource_class(options[:resource_class]) || @resource_class
+			resource_class = options[:resource_class] || @resource_class
 			
 			if resource_class == nil
 				raise ArgumentError, "Could not instantiate resource #{resource_class}!"

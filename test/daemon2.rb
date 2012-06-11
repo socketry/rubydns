@@ -55,7 +55,8 @@ end
 
 # The Daemon itself
 class Server < RExec::Daemon::Base
-	@@var_directory = File.dirname(__FILE__)
+	Name = Resolv::DNS::Name
+	IN = Resolv::DNS::Resource::IN
 
 	def self.run
 		# Don't buffer output (for debug purposes)
@@ -63,14 +64,14 @@ class Server < RExec::Daemon::Base
 
 		# Use upstream DNS for name resolution (These ones are Orcon DNS in NZ)
 		$R = Resolv::DNS.new(:nameserver => ["8.8.8.8"])
-
+		
 		# Start the RubyDNS server
 		RubyDNS::run_server(:listen => INTERFACES) do
 			on(:start) do
 				RExec.change_user(RUN_AS)
 			end
 
-			match("test.mydomain.org", :A) do |transaction|
+			match("test.mydomain.org", IN::A) do |transaction|
 				transaction.respond!("10.0.0.80")
 			end
 

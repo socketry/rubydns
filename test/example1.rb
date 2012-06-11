@@ -28,22 +28,23 @@ require 'rubydns'
 
 $R = Resolv::DNS.new
 Name = Resolv::DNS::Name
+IN = Resolv::DNS::Resource::IN
 
 RubyDNS::run_server do
 	# For this exact address record, return an IP address
-	match("dev.mydomain.org", :A) do |transaction|
+	match("dev.mydomain.org", IN::A) do |transaction|
 		transaction.respond!("10.0.0.80")
 	end
 
-	match("80.0.0.10.in-addr.arpa", :PTR) do |transaction|
+	match("80.0.0.10.in-addr.arpa", IN::PTR) do |transaction|
 		transaction.respond!(Name.create("dev.mydomain.org."))
 	end
 
-	match("dev.mydomain.org", :MX) do |transaction|
+	match("dev.mydomain.org", IN::MX) do |transaction|
 		transaction.respond!(10, Name.create("mail.mydomain.org."))
 	end
 	
-	match(/^test([0-9]+).mydomain.org$/, :A) do |match_data, transaction|
+	match(/^test([0-9]+).mydomain.org$/, IN::A) do |match_data, transaction|
 		offset = match_data[1].to_i
 		
 		if offset > 0 && offset < 10

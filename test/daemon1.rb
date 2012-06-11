@@ -34,9 +34,13 @@ INTERFACES = [
 
 # Very simple XMLRPC daemon
 class TestDaemon < RExec::Daemon::Base
-  @@var_directory = "/tmp/ruby-test/var"
-  
-  def self.run
+	# You can specify a specific directory to use for run-time information (pid, logs, etc):
+	# @@var_directory = "/tmp/ruby-test/var"
+
+	Name = Resolv::DNS::Name
+	IN = Resolv::DNS::Resource::IN
+
+	def self.run
 		$stderr.sync = true
 
 		$R = Resolv::DNS.new

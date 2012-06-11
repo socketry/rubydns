@@ -1,6 +1,6 @@
 
 Dir.chdir("../") do
-	require 'lib/rubydns/version'
+	require './lib/rubydns/version'
 
 	Gem::Specification.new do |s|
 		s.name = "rubydns"
