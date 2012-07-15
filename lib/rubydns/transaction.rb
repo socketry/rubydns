@@ -30,6 +30,7 @@ module RubyDNS
 			@resource_class = resource_class
 			@answer = answer
 			
+			@original_resource_class = nil
 			@question_appended = false
 		end
 
@@ -37,6 +38,9 @@ module RubyDNS
 		# response.
 		attr :resource_class
 		
+		# The original resource_class that was requested. Only use in case of ANY requests.
+		attr_accessor :original_resource_class
+
 		# The incoming query which is a set of questions.
 		attr :query
 		
@@ -202,7 +206,7 @@ module RubyDNS
 		protected
 		def append_question!
 			if @answer.question.size == 0
-				@answer.add_question(@question, @resource_class) unless @question_appended
+				@aboutnswer.add_question(@question, @original_resource_class || @resource_class) unless @question_appended
 			end
 		end
 	end

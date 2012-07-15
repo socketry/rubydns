@@ -170,24 +170,33 @@ module RubyDNS
 			answer.ra = 0                 # Does name server support recursion: 0 = No, 1 = Yes
 			answer.rcode = 0              # Response code: 0 = No errors
 
-			query.each_question do |question, resource_class|    # There may be multiple questions per query
-				transaction = Transaction.new(self, query, question, resource_class, answer)
-
-				begin
-					transaction.process
-				rescue
-					@logger.error "Exception thrown while processing #{transaction}!"
-					@logger.error "#{$!.class}: #{$!.message}"
-					$!.backtrace.each { |at| @logger.error at }
-
-					answer.rcode = Resolv::DNS::RCode::ServFail
+			query.each_question do |question, question_resource_class|    # There may be multiple questions per query
+				resource_classes = if question_resource_class == Resolv::DNS::Resource::IN::ANY then
+					resource_classes = [Resolv::DNS::Resource::IN::A, Resolv::DNS::Resource::IN::AAAA, Resolv::DNS::Resource::IN::ANY, Resolv::DNS::Resource::IN::CNAME, Resolv::DNS::Resource::IN::HINFO, Resolv::DNS::Resource::IN::MINFO, Resolv::DNS::Resource::IN::MX, Resolv::DNS::Resource::IN::NS, Resolv::DNS::Resource::IN::PTR, Resolv::DNS::Resource::IN::SOA, Resolv::DNS::Resource::IN::TXT]
+				else
+					[question_resource_class]
 				end
-			end
 
-			if block_given?
-				yield answer
-			else
-				return answer
+				resource_classes.each do |resource_class|
+					transaction = Transaction.new(self, query, question, resource_class, answer)
+					transaction.original_resource_class = question_resource_class
+
+					begin
+						transaction.process
+					rescue
+						@logger.error "Exception thrown while processing #{transaction}!"
+						@logger.error "#{$!.class}: #{$!.message}"
+						$!.backtrace.each { |at| @logger.error at }
+
+						answer.rcode = Resolv::DNS::RCode::ServFail
+					end
+				end
+
+				if block_given?
+					yield answer
+				else
+					return answer
+				end
 			end
 		end
 	end
