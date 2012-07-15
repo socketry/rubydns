@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby
+#!/usr/bin/env ruby1.9
 
 # Copyright (c) 2009, 2011 Samuel G. D. Williams. <http://www.oriontransfer.co.nz>
 # 
@@ -31,6 +31,18 @@ Name = Resolv::DNS::Name
 IN = Resolv::DNS::Resource::IN
 
 RubyDNS::run_server do
+	# % dig +nocmd +noall +answer @localhost ANY dev.mydomain.org
+	# dev.mydomain.org.	16000	IN	A	10.0.0.80
+	# dev.mydomain.org.	16000	IN	MX	10 mail.mydomain.org.
+	match(/dev.mydomain.org/, IN::ANY) do |match_data, transaction|
+		transaction.append_question!
+		
+		[IN::A, IN::CNAME, IN::MX].each do |resource_class|
+			logger.debug "Appending query for #{resource_class}..."
+			transaction.append_query!(transaction.name, resource_class)
+		end
+	end
+	
 	# For this exact address record, return an IP address
 	match("dev.mydomain.org", IN::A) do |transaction|
 		transaction.respond!("10.0.0.80")
