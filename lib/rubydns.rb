@@ -63,7 +63,7 @@ module RubyDNS
 	#
 	def self.run_server (options = {}, &block)
 		server = RubyDNS::Server.new(&block)
-		server.logger.info "Starting server..."
+		server.logger.info "Starting RubyDNS server (v#{RubyDNS::VERSION::STRING})..."
 		
 		options[:listen] ||= [[:udp, "0.0.0.0", 53], [:tcp, "0.0.0.0", 53]]
 		

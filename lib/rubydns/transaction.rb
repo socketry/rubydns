@@ -199,7 +199,6 @@ module RubyDNS
 			true
 		end
 
-		protected
 		def append_question!
 			if @answer.question.size == 0
 				@answer.add_question(@question, @resource_class) unless @question_appended
