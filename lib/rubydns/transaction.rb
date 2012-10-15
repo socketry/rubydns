@@ -73,7 +73,7 @@ module RubyDNS
 		# If a block is supplied, this function yields with the reply and reply_name if
 		# successful. This could be used, for example, to update a cache or modify the
 		# reply.
-		def passthrough! (resolver, options = {}, &block)
+		def passthrough!(resolver, options = {}, &block)
 			passthrough(resolver, options) do |reply, reply_name|
 				if block_given?
 					yield reply, reply_name
@@ -95,7 +95,7 @@ module RubyDNS
 		#
 		# A second argument, options, provides some control over the passthrough process.
 		# :force => true, ensures that the query will occur even if recursion is not requested.
-		def passthrough (resolver, options = {}, &block)
+		def passthrough(resolver, options = {}, &block)
 			if @query.rd || options[:force]
 				reply, reply_name = resolver.query(name, resource_class)
 				

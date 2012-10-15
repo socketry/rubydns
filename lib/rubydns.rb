@@ -29,6 +29,8 @@ else
 end
 
 require 'rubydns/server'
+require 'rubydns/resolver'
+require 'rubydns/handler'
 
 require 'logger'
 
