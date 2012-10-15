@@ -18,14 +18,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'eventmachine'
-require 'stringio'
+require 'rubydns/network'
 
 module RubyDNS
-	
 	module UDPHandler
-		UDP_TRUNCATION_SIZE = 512
-
 		def initialize(server)
 			@server = server
 		end
@@ -70,7 +66,7 @@ module RubyDNS
 					
 					# Reencode data with truncation flag marked as true:
 					answer.tc = 1
-					data = answer.encode.byteslice(0,UDP_TRUNCATION_SIZE)
+					data = answer.encode.byteslice(0, UDP_TRUNCATION_SIZE)
 				end
 				
 				self.send_data(data)

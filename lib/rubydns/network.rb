@@ -18,12 +18,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-module RubyDNS
-  module VERSION #:nodoc:
-    MAJOR = 0
-    MINOR = 5
-    TINY  = 0
+require 'eventmachine'
+require 'stringio'
+require 'resolv'
 
-    STRING = [MAJOR, MINOR, TINY].join('.')
-  end
+module RubyDNS
+	UDP_TRUNCATION_SIZE = 512
 end
