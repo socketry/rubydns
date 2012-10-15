@@ -24,10 +24,12 @@ module RubyDNS
 			@options = options
 		end
 
+		# Provides the next sequence identification number which is used to keep track of DNS messages.
 		def next_id!
 			return (@sequence += 1)
 		end
 
+		# Look up a named resource of the given resource_class.
 		def query(name, resource_class = Resolv::DNS::Resource::IN::A, &block)
 			message = Resolv::DNS::Message.new(next_id!)
 			message.rd = 1
@@ -36,6 +38,7 @@ module RubyDNS
 			Request.fetch(message, @servers, @options, &block)
 		end
 
+		# Manages a single DNS question message across one or more servers.
 		class Request
 			include EventMachine::Deferrable
 			
