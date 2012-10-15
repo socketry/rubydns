@@ -4,6 +4,7 @@ RubyDNS
 * Author: Samuel G. D. Williams (<http://www.oriontransfer.co.nz>)
 * Copyright (C) 2009, 2011 Samuel G. D. Williams.
 * Released under the MIT license.
+* [![Build Status](https://secure.travis-ci.org/ioquatix/rubydns.png)](http://travis-ci.org/ioquatix/rubydns)
 
 RubyDNS is a simple programmatic DSL (domain specific language) for configuring and running a DNS server. RubyDNS provides a daemon that runs a DNS server which can process DNS requests depending on specific policy. Rule selection is based on pattern matching, and results can be hard-coded, computed, fetched from a remote DNS server, fetched from a local cache, etc.
 
