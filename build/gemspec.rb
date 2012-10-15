@@ -7,17 +7,16 @@ Dir.chdir("../") do
 		s.version = RubyDNS::VERSION::STRING
 		s.authors = ["Samuel Williams"]
 		s.email = "samuel@oriontransfer.org"
-		s.homepage = "http://www.oriontransfer.co.nz/gems/rubydns"
+		s.homepage = "http://www.codeotaku.com/projects/rubydns"
 		s.platform = Gem::Platform::RUBY
-		s.summary = "A simple DNS server DSL for Ruby."
-
-		s.files = FileList["{lib,test,bin}/**/*"] + ["README.md"]
+		s.summary = "An easy to use DNS server and resolver for Ruby."
+		s.files = FileList["{bin,lib,test}/**/*"] + ["rakefile.rb", "Gemfile", "README.md"]
 
 		s.executables << "rd-resolve-test"
 		s.executables << "rd-dns-check"
 
-		s.add_dependency("rexec")
-		s.add_dependency("eventmachine")
+		s.add_dependency("rexec", "~> 0.5.0")
+		s.add_dependency("eventmachine", "~> 1.0.0")
 		
 		s.has_rdoc = "yard"
 	end
