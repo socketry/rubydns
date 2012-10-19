@@ -8,10 +8,7 @@ require 'rubydns/resolver'
 require 'rexec'
 require 'rexec/daemon'
 
-Name = Resolv::DNS::Name
-IN = Resolv::DNS::Resource::IN
-
-class TestServer < RExec::Daemon::Base
+class BasicTestServer < RExec::Daemon::Base
 	@@base_directory = File.dirname(__FILE__)
 
 	def self.run
@@ -35,15 +32,17 @@ end
 
 class DaemonTest < Test::Unit::TestCase
 	def setup
-		TestServer.start
+		$stderr.puts "Starting test server..."
+		BasicTestServer.start
 	end
 	
 	def teardown
-		TestServer.stop
+		$stderr.puts "Stoping test server..."
+		BasicTestServer.stop
 	end
 	
 	def test_basic_dns
-		assert_equal :running, RExec::Daemon::ProcessFile.status(TestServer)
+		assert_equal :running, RExec::Daemon::ProcessFile.status(BasicTestServer)
 		
 		EventMachine.run do
 			resolver = resolver = RubyDNS::Resolver.new([[:udp, "127.0.0.1", 5300], [:tcp, "127.0.0.1", 5300]])
@@ -60,13 +59,12 @@ class DaemonTest < Test::Unit::TestCase
 	end
 	
 	def test_pattern_matching
-		assert_equal :running, RExec::Daemon::ProcessFile.status(TestServer)
-		
+		assert_equal :running, RExec::Daemon::ProcessFile.status(BasicTestServer)
+
 		EventMachine.run do
 			resolver = resolver = RubyDNS::Resolver.new([[:udp, "127.0.0.1", 5300], [:tcp, "127.0.0.1", 5300]])
-		
-			resolver.query("foobar") do |response|
 
+			resolver.query("foobar") do |response|
 				answer = response.answer.first
 				
 				assert_equal "foobar", answer[0].to_s

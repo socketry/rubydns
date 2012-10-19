@@ -8,10 +8,7 @@ require 'rubydns/resolver'
 require 'rexec'
 require 'rexec/daemon'
 
-Name = Resolv::DNS::Name
-IN = Resolv::DNS::Resource::IN
-
-class TestServer < RExec::Daemon::Base
+class TestPassthroughServer < RExec::Daemon::Base
 	@@base_directory = File.dirname(__FILE__)
 
 	def self.run
@@ -33,17 +30,17 @@ end
 
 class PassthroughTest < Test::Unit::TestCase
 	def setup
-		TestServer.start
+		TestPassthroughServer.start
 	end
 	
 	def teardown
-		TestServer.stop
+		TestPassthroughServer.stop
 	end
 	
 	def test_basic_dns
 		answer = nil
 		
-		assert_equal :running, RExec::Daemon::ProcessFile.status(TestServer)
+		assert_equal :running, RExec::Daemon::ProcessFile.status(TestPassthroughServer)
 		
 		EventMachine.run do
 			resolver = RubyDNS::Resolver.new([[:udp, "127.0.0.1", 5300], [:tcp, "127.0.0.1", 5300]])
