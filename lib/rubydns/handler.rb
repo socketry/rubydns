@@ -65,8 +65,10 @@ module RubyDNS
 					@server.logger.warn "Response via UDP was larger than #{UDP_TRUNCATION_SIZE}!"
 					
 					# Reencode data with truncation flag marked as true:
-					answer.tc = 1
-					data = answer.encode.byteslice(0, UDP_TRUNCATION_SIZE)
+					truncation_error = Resolv::DNS::Message.new(answer.id)
+					truncation_error.tc = 1
+					
+					data = truncation_error.encode
 				end
 				
 				self.send_data(data)
