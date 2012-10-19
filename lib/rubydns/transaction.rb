@@ -18,18 +18,23 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+require 'eventmachine'
+
 module RubyDNS
 
 	# This class provides all details of a single DNS question and answer. This
 	# is used by the DSL to provide DNS related functionality.
 	class Transaction
+		include EventMachine::Deferrable
+		
 		def initialize(server, query, question, resource_class, answer)
 			@server = server
 			@query = query
 			@question = question
 			@resource_class = resource_class
 			@answer = answer
-			
+
+			@deferred = false
 			@question_appended = false
 		end
 
@@ -62,8 +67,16 @@ module RubyDNS
 			Transaction.new(@server, @query, name, resource_class || @resource_class, @answer).process
 		end
 
-		def process
+		def process(&finished)
 			@server.process(name, @resource_class, self)
+
+			unless @deferred
+				succeed(self)
+			end
+		end
+
+		def defer!
+			@deferred = true
 		end
 
 		# Use the given resolver to respond to the question. The default functionality is
@@ -74,12 +87,12 @@ module RubyDNS
 		# successful. This could be used, for example, to update a cache or modify the
 		# reply.
 		def passthrough!(resolver, options = {}, &block)
-			passthrough(resolver, options) do |reply, reply_name|
+			passthrough(resolver, options) do |response|
 				if block_given?
-					yield reply, reply_name
+					yield response
 				end
 				
-				@answer.merge!(reply)
+				@answer.merge!(response)
 			end
 			
 			true
@@ -97,12 +110,17 @@ module RubyDNS
 		# :force => true, ensures that the query will occur even if recursion is not requested.
 		def passthrough(resolver, options = {}, &block)
 			if @query.rd || options[:force]
-				reply, reply_name = resolver.query(name, resource_class)
-				
-				if reply
-					yield reply, reply_name
-				else
-					failure!(:NXDomain)
+				# Resolver is asynchronous, so we are now deferred:
+				defer!
+
+				resolver.query(name, resource_class) do |response|
+					case response
+					when RubyDNS::Message
+						yield response
+						succeed(response)
+					else
+						fail(response)
+					end
 				end
 			else
 				failure!(:Refused)

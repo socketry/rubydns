@@ -170,25 +170,52 @@ module RubyDNS
 			answer.ra = 0                 # Does name server support recursion: 0 = No, 1 = Yes
 			answer.rcode = 0              # Response code: 0 = No errors
 
-			query.each_question do |question, resource_class|    # There may be multiple questions per query
-				transaction = Transaction.new(self, query, question, resource_class, answer)
+			# 1/ This chain contains a reverse list of question lambdas.
+			chain = []
 
-				begin
-					transaction.process
-				rescue
-					@logger.error "Exception thrown while processing #{transaction}!"
-					@logger.error "#{$!.class}: #{$!.message}"
-					$!.backtrace.each { |at| @logger.error at }
+			# 4/ Finally, the answer is given back to the calling block:
+			chain << lambda do
+				yield answer
+			end
 
-					answer.rcode = Resolv::DNS::RCode::ServFail
+			# There may be multiple questions per query
+			query.question.reverse.each do |question, resource_class|
+				next_link = chain.last
+					
+				chain << lambda do
+					@logger.debug "Processing question #{question} #{resource_class}..."
+
+					transaction = Transaction.new(self, query, question, resource_class, answer)
+					
+					# Call the next link in the chain:
+					transaction.callback do
+						@logger.warn "Calling next link..."
+						# 3/ ... which calls the previous item in the chain, i.e. the next question to be answered:
+						next_link.call
+					end
+
+					# If there was an error, log it and fail:
+					transaction.errback do |response|
+						@logger.error "Exception thrown while processing #{transaction}!"
+						@logger.error "#{response.class}: #{response.message}"
+						response.backtrace.each { |at| @logger.error at }
+
+						answer.rcode = Resolv::DNS::RCode::ServFail
+
+						chain.first.call
+					end
+					
+					begin
+						# Transaction.process will call succeed if it wasn't deferred:
+						transaction.process
+					rescue
+						transaction.fail($!)
+					end
 				end
 			end
 
-			if block_given?
-				yield answer
-			else
-				return answer
-			end
+			# 2/ We call the last lambda...
+			chain.last.call
 		end
 	end
 end
