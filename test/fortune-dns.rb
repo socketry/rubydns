@@ -39,14 +39,10 @@ if RExec.current_user != "root"
 	exit 1
 end
 
+# To use, start the daemon and try:
 # dig @localhost fortune CNAME
-# 
-
-# HELLO = "こんいちは".force_encoding('ASCII-8BIT')
-
-# The Daemon itself
 class FortuneDNS < RExec::Daemon::Base
-	@@var_directory = File.dirname(__FILE__)
+	@@base_directory = File.dirname(__FILE__)
 
 	Name = Resolv::DNS::Name
 	IN = Resolv::DNS::Resource::IN
