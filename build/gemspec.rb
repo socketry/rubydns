@@ -15,7 +15,7 @@ Dir.chdir("../") do
 		s.executables << "rd-resolve-test"
 		s.executables << "rd-dns-check"
 
-		s.add_dependency("rexec", "~> 1.5.0")
+		s.add_dependency("rexec", "~> 1.5.1")
 		s.add_dependency("eventmachine", "~> 1.0.0")
 		
 		s.has_rdoc = "yard"
