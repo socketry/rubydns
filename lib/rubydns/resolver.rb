@@ -60,15 +60,11 @@ module RubyDNS
 				@message = message
 				@packet = message.encode
 				
-				@protocol = options[:protocol] || :udp
+				@servers = servers.dup
 				
 				# We select the protocol based on the size of the data:
 				if @packet.bytesize > UDP_TRUNCATION_SIZE
-					@protocol = :tcp
-				end
-				
-				@servers = servers.select do |server|
-					server[0] == @protocol
+					@servers.delete_if{|server| server[0] == :udp}
 				end
 				
 				# Measured in seconds:
@@ -83,7 +79,12 @@ module RubyDNS
 			end
 			
 			def process_response!(response)
-				succeed response
+				if response.tc != 0
+					# We hardcode this behaviour for now.
+					try_next_server!
+				else
+					succeed response
+				end
 			end
 			
 			private
@@ -137,7 +138,7 @@ module RubyDNS
 					# Receiving response from remote DNS server...
 					message = Resolv::DNS::Message.decode(data)
 					
-					# The message id must match:
+					# The message id must match, and it can't be truncated:
 					if message.id == @request.message.id
 						@request.process_response!(message)
 					end
