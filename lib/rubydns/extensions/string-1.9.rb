@@ -18,6 +18,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+require 'stringio'
+
 class String
 	def chunked(chunk_size = 255)
 		chunks = []
@@ -29,5 +31,15 @@ class String
 		end
 		
 		return chunks
+	end
+end
+
+module RubyDNS
+	class BinaryStringIO < StringIO
+		def initialize
+			super
+		
+			set_encoding("binary")
+		end
 	end
 end
