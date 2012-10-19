@@ -18,6 +18,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+require 'stringio'
+
 class String
 	def bytesize
 		size
@@ -38,4 +40,8 @@ class String
 		
 		return chunks
 	end
+end
+
+module RubyDNS
+	BinaryStringIO = StringIO
 end

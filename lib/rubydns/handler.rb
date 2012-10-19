@@ -82,14 +82,15 @@ module RubyDNS
 	module TCPHandler
 		def initialize(server)
 			@server = server
-			@buffer = nil
+			
+			@buffer = BinaryStringIO.new
+			
 			@length = nil
 			@processed = 0
 		end
 		
 		def receive_data(data)
 			# We buffer data until we've received the entire packet:
-			@buffer ||= StringIO.new
 			@buffer.write(data)
 			
 			# Message includes a 16-bit length field.. we need to see if we have received it yet:

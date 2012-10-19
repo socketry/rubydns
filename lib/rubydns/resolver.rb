@@ -152,7 +152,7 @@ module RubyDNS
 				
 				def initialize(request)
 					@request = request
-					@buffer = StringIO.new
+					@buffer = nil
 					@length = nil
 				end
 				
@@ -165,6 +165,7 @@ module RubyDNS
 				
 				def receive_data(data)
 					# We buffer data until we've received the entire packet:
+					@buffer ||= BinaryStringIO.new
 					@buffer.write(data)
 
 					if @length == nil
