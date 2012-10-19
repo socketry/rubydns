@@ -5,8 +5,6 @@ require 'pathname'
 require 'rubydns'
 require 'rubydns/resolver'
 
-IN = Resolv::DNS::Resource::IN
-
 class FortuneDNS < RExec::Daemon::Base
 	@@base_directory = File.dirname(__FILE__)
 
@@ -52,7 +50,7 @@ class FortuneDNS < RExec::Daemon::Base
 	end
 end
 
-class DaemonTest < Test::Unit::TestCase
+class FortuneDNSTest < Test::Unit::TestCase
 	def setup
 		FortuneDNS.start
 	end
