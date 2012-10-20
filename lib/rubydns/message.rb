@@ -22,6 +22,8 @@ require 'eventmachine'
 require 'stringio'
 require 'resolv'
 
+require 'rubydns/extensions/resolv'
+
 module RubyDNS
 	UDP_TRUNCATION_SIZE = 512
 	
