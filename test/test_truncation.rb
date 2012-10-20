@@ -34,6 +34,7 @@ class TruncationTest < Test::Unit::TestCase
 	
 	def teardown
 		TruncatedServer.stop
+		TruncatedServer.tail_log($stderr)
 	end
 	
 	def test_tcp_failover
