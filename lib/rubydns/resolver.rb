@@ -69,10 +69,13 @@ module RubyDNS
 				
 				# Measured in seconds:
 				@timeout = options[:timeout] || 5
+				
+				@logger = options[:logger]
 			end
 			
 			attr :message
 			attr :packet
+			attr :logger
 			
 			def run!
 				try_next_server!
@@ -80,9 +83,11 @@ module RubyDNS
 			
 			def process_response!(response)
 				if response.tc != 0
+					@logger.warn "[#{@message.id}] Received truncated response!" if @logger
 					# We hardcode this behaviour for now.
 					try_next_server!
 				else
+					@logger.warn "[#{@message.id}] Received valid response #{response.inspect}" if @logger
 					succeed response
 				end
 			end
@@ -98,6 +103,8 @@ module RubyDNS
 				if @servers.size > 0
 					@server = @servers.shift
 					
+					@logger.debug "[#{@message.id}] Sending request to server #{@server.inspect}" if @logger
+					
 					# We make requests one at a time to the given server, naturally the servers are ordered in terms of priority.
 					case @server[0]
 					when :udp
@@ -110,6 +117,8 @@ module RubyDNS
 					
 					# Setting up the timeout...
 					EventMachine::Timer.new(@timeout) do
+						@logger.debug "[#{@message.id}] Request timed out!" if @logger
+						
 						try_next_server!
 					end
 				else
@@ -141,6 +150,8 @@ module RubyDNS
 					# The message id must match, and it can't be truncated:
 					if message.id == @request.message.id
 						@request.process_response!(message)
+					else
+						@request.logger.warn "[#{@request.message.id}] Received response with incorrect message id: #{message.id}" if @request.logger
 					end
 				end
 			end
@@ -181,6 +192,8 @@ module RubyDNS
 						
 						if message.id == @request.message.id
 							@request.process_response!(message)
+						else
+							@request.logger.warn "[#{@request.message.id}] Received response with incorrect message id: #{message.id}" if @request.logger
 						end
 					elsif @buffer.size > (@length + 2)
 						@request.try_next_server!

@@ -175,13 +175,14 @@ module RubyDNS
 
 			# 4/ Finally, the answer is given back to the calling block:
 			chain << lambda do
+				@logger.debug "Passing answer back to caller..."
 				yield answer
 			end
 
 			# There may be multiple questions per query
 			query.question.reverse.each do |question, resource_class|
 				next_link = chain.last
-					
+
 				chain << lambda do
 					@logger.debug "Processing question #{question} #{resource_class}..."
 
@@ -189,7 +190,6 @@ module RubyDNS
 					
 					# Call the next link in the chain:
 					transaction.callback do
-						@logger.warn "Calling next link..."
 						# 3/ ... which calls the previous item in the chain, i.e. the next question to be answered:
 						next_link.call
 					end
