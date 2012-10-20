@@ -21,16 +21,8 @@
 require 'stringio'
 
 class String
-	def chunked(chunk_size = 255)
-		chunks = []
-		
-		offset = 0
-		while offset < bytesize
-			chunks << byteslice(offset, chunk_size)
-			offset += chunk_size
-		end
-		
-		return chunks
+	def byteslice(*args)
+		self.dup.force_encoding("binary").slice(*args)
 	end
 end
 

@@ -27,7 +27,11 @@ require 'rexec'
 require 'rexec/daemon'
 
 require 'rubygems'
+
 require 'rubydns'
+
+# Provides String#chunked
+require 'rubydns/extensions/string'
 
 require 'digest/md5'
 

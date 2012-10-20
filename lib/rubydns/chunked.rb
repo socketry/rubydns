@@ -18,18 +18,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'stringio'
-
-class String
-	def bytesize
-		size
-	end
-	
-	def byteslice(*args)
-		self[*args]
-	end
-end
-
 module RubyDNS
-	BinaryStringIO = StringIO
+	# Produces an array of arrays of binary data with each sub-array a maximum of chunk_size bytes.
+	def self.chunked(string, chunk_size = 255)
+		chunks = []
+		
+		offset = 0
+		while offset < string.bytesize
+			chunks << string.byteslice(offset, chunk_size)
+			offset += chunk_size
+		end
+		
+		return chunks
+	end
 end

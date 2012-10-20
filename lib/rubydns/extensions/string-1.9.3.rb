@@ -20,16 +20,12 @@
 
 require 'stringio'
 
-class String
-	def bytesize
-		size
-	end
-	
-	def byteslice(*args)
-		self[*args]
-	end
-end
-
 module RubyDNS
-	BinaryStringIO = StringIO
+	class BinaryStringIO < StringIO
+		def initialize
+			super
+		
+			set_encoding("binary")
+		end
+	end
 end
