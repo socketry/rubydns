@@ -31,17 +31,14 @@ end
 class TruncationTest < Test::Unit::TestCase
 	def setup
 		TruncatedServer.start
-		TruncatedServer.status
 	end
 	
 	def teardown
 		TruncatedServer.stop
-		TruncatedServer.tail_log($stderr)
 	end
 	
 	def test_tcp_failover
-		logger = Logger.new($stderr)
-		resolver = RubyDNS::Resolver.new([[:udp, '127.0.0.1', 5320], [:tcp, '127.0.0.1', 5320]], :logger => logger)
+		resolver = RubyDNS::Resolver.new([[:udp, '127.0.0.1', 5320], [:tcp, '127.0.0.1', 5320]])
 		
 		EventMachine::run do
 			resolver.query("truncation", IN::TXT) do |response|
