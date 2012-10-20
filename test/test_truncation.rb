@@ -4,6 +4,7 @@ require 'pathname'
 
 require 'rubydns'
 require 'rubydns/resolver'
+require 'rubydns/extensions/string'
 
 class TruncatedServer < RExec::Daemon::Base
 	@@base_directory = File.dirname(__FILE__)

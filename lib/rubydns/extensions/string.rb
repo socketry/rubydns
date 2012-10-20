@@ -18,18 +18,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'stringio'
+require 'rubydns/chunked'
 
 class String
-	def bytesize
-		size
+	def chunked(chunk_size = 255)
+		RubyDNS::chunked(self)
 	end
-	
-	def byteslice(*args)
-		self[*args]
-	end
-end
-
-module RubyDNS
-	BinaryStringIO = StringIO
 end

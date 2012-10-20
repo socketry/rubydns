@@ -23,9 +23,12 @@ require 'rubydns/version'
 if RUBY_VERSION < "1.9"
 	require 'rubydns/extensions/resolv-1.8'
 	require 'rubydns/extensions/string-1.8'
+elsif RUBY_VERSION < "1.9.3"
+	require 'rubydns/extensions/resolv-1.9'
+	require 'rubydns/extensions/string-1.9.2'
 else
 	require 'rubydns/extensions/resolv-1.9'
-	require 'rubydns/extensions/string-1.9'
+	require 'rubydns/extensions/string-1.9.3'
 end
 
 require 'rubydns/server'
