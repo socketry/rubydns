@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'rubydns/network'
+require 'rubydns/message'
 
 module RubyDNS
 	module UDPHandler
@@ -31,7 +31,7 @@ module RubyDNS
 			query = nil
 
 			begin
-				query = Resolv::DNS::Message::decode(data)
+				query = RubyDNS::decode_message(data)
 
 				return server.process_query(query, &block)
 			rescue

@@ -24,4 +24,15 @@ require 'resolv'
 
 module RubyDNS
 	UDP_TRUNCATION_SIZE = 512
+	
+	# The DNS message container.
+	Message = Resolv::DNS::Message
+
+	def self.decode_message(data)
+		if data.respond_to? :force_encoding
+			data.force_encoding("BINARY")
+		end
+		
+		Message.decode(data)
+	end
 end

@@ -25,7 +25,9 @@ module RubyDNS
 		def initialize
 			super
 		
-			set_encoding("binary")
+			set_encoding("BINARY")
 		end
 	end
+	
+	
 end
