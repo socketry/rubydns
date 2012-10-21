@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# encoding: utf-8
 
 # Copyright (c) 2009, 2011 Samuel G. D. Williams. <http://www.oriontransfer.co.nz>
 # 
@@ -26,63 +27,84 @@ require 'rexec'
 require 'rexec/daemon'
 
 require 'rubygems'
+
 require 'rubydns'
+require 'rubydns/extensions/string'
 
-# To run this command, use the standard daemon syntax as root
-# ./daemon2.rb start
-
-# You should be able to see that the server has dropped priviledges
-#   # ps aux | grep daemon2.rb
-#   daemon   16555   0.4  0.0    81392   2024   ??  S     3:35am   0:00.28 ruby ../test/daemon2.rb start
-
-# Test using the following command
-# dig @localhost test.mydomain.org
-# dig +tcp @localhost test.mydomain.org
+require 'digest/md5'
 
 # You might need to change the user name "daemon". This can be a user name or a user id.
 RUN_AS = "daemon"
 
-INTERFACES = [
-	[:udp, "0.0.0.0", 53],
-	[:tcp, "0.0.0.0", 53]
-]
-
-# We need to be root in order to bind to privileged port
 if RExec.current_user != "root"
 	$stderr.puts "Sorry, this command needs to be run as root!"
 	exit 1
 end
 
-# The Daemon itself
-class Server < RExec::Daemon::Base
+# To use, start the daemon and try:
+# dig @localhost fortune CNAME
+class FortuneDNS < RExec::Daemon::Base
+	@@base_directory = File.dirname(__FILE__)
+
 	Name = Resolv::DNS::Name
 	IN = Resolv::DNS::Resource::IN
 
 	def self.run
 		# Don't buffer output (for debug purposes)
 		$stderr.sync = true
-
-		# Use upstream DNS for name resolution (These ones are Orcon DNS in NZ)
-		$R = Resolv::DNS.new(:nameserver => ["8.8.8.8"])
+		
+		cache = {}
+		stats = {:requested => 0}
 		
 		# Start the RubyDNS server
-		RubyDNS::run_server(:listen => INTERFACES) do
+		RubyDNS::run_server do
 			on(:start) do
 				RExec.change_user(RUN_AS)
+				if ARGV.include?("--debug")
+					@logger.level = Logger::DEBUG
+				else
+					@logger.level = Logger::WARN
+				end
 			end
-
-			match("test.mydomain.org", IN::A) do |transaction|
-				transaction.respond!("10.0.0.80")
+			
+			match(/stats\.fortune/, IN::TXT) do |match, transaction|
+				$stderr.puts "Sending stats: #{stats.inspect}"
+				transaction.respond!(stats.inspect)
 			end
-
+			
+			match(/(.+)\.fortune/, IN::TXT) do |match, transaction|
+				fortune = cache[match[1]]
+				stats[:requested] += 1
+				
+				if fortune
+					transaction.respond!(*fortune.chunked)
+				else
+					transaction.failure!(:NXDomain)
+				end
+			end
+			
+			match(/fortune/, [IN::CNAME, IN::TXT]) do |match, transaction|
+				fortune = `fortune`.gsub(/\s+/, " ").strip
+				checksum = Digest::MD5.hexdigest(fortune)
+				cache[checksum] = fortune
+				
+				transaction.respond!("Text Size: #{fortune.size} Byte Size: #{fortune.bytesize}", :resource_class => IN::TXT, :ttl => 0)
+				transaction.respond!(Name.create(checksum + ".fortune"), :resource_class => IN::CNAME, :ttl => 0)
+			end
+			
+			match(/short.fortune/, IN::TXT) do |match, transation|
+				fortune = `fortune -s`.gsub(/\s+/, " ").strip
+				
+				transaction.respond!(*fortune.chunked, :ttl => 0)
+			end
+			
 			# Default DNS handler
 			otherwise do |transaction|
-				logger.info "Passthrough: #{transaction}"
-				transaction.passthrough!($R)
+				transaction.failure!(:NXDomain)
 			end
 		end
 	end
 end
 
 # RExec daemon runner
-Server.daemonize
+FortuneDNS.daemonize

@@ -28,23 +28,23 @@ require 'rexec/daemon'
 require 'rubygems'
 require 'rubydns'
 
+require 'rubydns/resolver'
+require 'rubydns/system'
+
 INTERFACES = [
 	[:udp, "0.0.0.0", 5300]
 ]
 
-# Very simple XMLRPC daemon
-class TestDaemon < RExec::Daemon::Base
+class DroppingDaemon < RExec::Daemon::Base
 	# You can specify a specific directory to use for run-time information (pid, logs, etc):
-	# @@var_directory = "/tmp/ruby-test/var"
+	# @@base_directory = File.expand_path("../", __FILE__)
+	# @@base_directory = "/var"
 
 	Name = Resolv::DNS::Name
 	IN = Resolv::DNS::Resource::IN
-
+	R = RubyDNS::Resolver.new(RubyDNS::System::nameservers)
+	
 	def self.run
-		$stderr.sync = true
-
-		$R = Resolv::DNS.new
-
 		RubyDNS::run_server(:listen => INTERFACES) do
 			# Fail the resolution of certain domains ;)
 			match(/(m?i?c?r?o?s?o?f?t)/) do |match_data, transaction|
@@ -66,10 +66,10 @@ class TestDaemon < RExec::Daemon::Base
 			# Default DNS handler
 			otherwise do |transaction|
 				logger.info "Passing DNS request upstream..."
-				transaction.passthrough!($R)
+				transaction.passthrough!(R)
 			end
 		end
   end
 end
 
-TestDaemon.daemonize
+DroppingDaemon.daemonize

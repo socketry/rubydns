@@ -27,7 +27,7 @@ $R = Resolv::DNS.new
 Name = Resolv::DNS::Name
 IN = Resolv::DNS::Resource::IN
 
-RubyDNS::run_server(:listen => [[:udp, "0.0.0.0", 5300]]) do
+RubyDNS::run_server(:listen => [[:udp, "0.0.0.0", 5400]]) do
 	# SOA Record
 	#   dig @localhost -p 5300 SOA mydomain.org
 	match("mydomain.org", IN::SOA) do |transaction|
@@ -45,11 +45,13 @@ RubyDNS::run_server(:listen => [[:udp, "0.0.0.0", 5300]]) do
 			3600000,                            # Maximum TTL / Expiry Time
 			172800                              # Minimum TTL
 		)
+		
+		transaction.append_query!(transaction.question, IN::NS, :section => :authority)
 	end
 	
 	# Default NS record
-	#   dig @localhost -p 5300 NS
-	match("", IN::NS) do |transaction|
+	#   dig @localhost -p 5300 mydomain.org NS
+	match("mydomain.org", IN::NS) do |transaction|
 		transaction.respond!(Name.create("ns.mydomain.org."))
 	end
 

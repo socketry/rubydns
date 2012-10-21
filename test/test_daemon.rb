@@ -9,11 +9,13 @@ require 'rexec'
 require 'rexec/daemon'
 
 class BasicTestServer < RExec::Daemon::Base
+	SERVER_PORTS = [[:udp, '127.0.0.1', 5350], [:tcp, '127.0.0.1', 5350]]
+
 	@@base_directory = File.dirname(__FILE__)
 
 	def self.run
 		# Start the RubyDNS server
-		RubyDNS::run_server(:listen => [[:udp, "0.0.0.0", 5300], [:tcp, "0.0.0.0", 5300]]) do
+		RubyDNS::run_server(:listen => SERVER_PORTS) do
 			match("test.local", IN::A) do |transaction|
 				transaction.respond!("192.168.1.1")
 			end
@@ -45,7 +47,7 @@ class DaemonTest < Test::Unit::TestCase
 		assert_equal :running, RExec::Daemon::ProcessFile.status(BasicTestServer)
 		
 		EventMachine.run do
-			resolver = resolver = RubyDNS::Resolver.new([[:udp, "127.0.0.1", 5300], [:tcp, "127.0.0.1", 5300]])
+			resolver = resolver = RubyDNS::Resolver.new(BasicTestServer::SERVER_PORTS)
 		
 			resolver.query("test.local") do |response|
 				answer = response.answer.first
@@ -62,7 +64,7 @@ class DaemonTest < Test::Unit::TestCase
 		assert_equal :running, RExec::Daemon::ProcessFile.status(BasicTestServer)
 
 		EventMachine.run do
-			resolver = resolver = RubyDNS::Resolver.new([[:udp, "127.0.0.1", 5300], [:tcp, "127.0.0.1", 5300]])
+			resolver = resolver = RubyDNS::Resolver.new(BasicTestServer::SERVER_PORTS)
 
 			resolver.query("foobar") do |response|
 				answer = response.answer.first

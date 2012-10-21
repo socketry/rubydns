@@ -26,6 +26,61 @@ module RubyDNS
 	# are used to match against incoming DNS questions. These rules are used to
 	# generate responses which are either DNS resource records or failures.
 	class Server
+		class Rule
+			def initialize(pattern, callback)
+				@pattern = pattern
+				@callback = callback
+			end
+			
+			def match(name, resource_class)
+				# If the pattern doesn't specify any resource classes, we implicitly pass this test:
+				return true if @pattern.size < 2
+				
+				# Otherwise, we try to match against some specific resource classes:
+				if Class === @pattern[1]
+					@pattern[1] == resource_class
+				else
+					@pattern[1].include?(resource_class) rescue false
+				end
+			end
+			
+			def call(server, name, resource_class, *args)
+				unless match(name, resource_class)
+					server.logger.debug "Resource class #{resource_class} failed to match #{@pattern[1].inspect}!"
+					
+					return false
+				end
+				
+				# Match succeeded against name?
+				case @pattern[0]
+				when Regexp
+					match_data = @pattern[0].match(name)
+					if match_data
+						server.logger.debug "Regexp pattern matched with #{match_data.inspect}."
+						return @callback[match_data, *args]
+					end
+				when String
+					if @pattern[0] == name
+						server.logger.debug "String pattern matched."
+						return @callback[*args]
+					end
+				else
+					if (@pattern[0].call(name, resource_class) rescue false)
+						server.logger.debug "Callable pattern matched."
+						return @callback[*args]
+					end
+				end
+				
+				server.logger.debug "No pattern matched."
+				# We failed to match the pattern.
+				return false
+			end
+			
+			def to_s
+				@pattern.inspect
+			end
+		end
+		
 		# Instantiate a server with a block
 		#
 		#   server = Server.new do
@@ -58,7 +113,7 @@ module RubyDNS
 		#   match(/g?mail.(com|org|net)/, [IN::MX, IN::A])
 		#
 		def match(*pattern, &block)
-			@rules << [pattern, Proc.new(&block)]
+			@rules << Rule.new(pattern, block)
 		end
 
 		# Register a named event which may be invoked later using #fire
@@ -66,7 +121,7 @@ module RubyDNS
 		#     RExec.change_user(RUN_AS)
 		#   end
 		def on(event_name, &block)
-			@events[event_name] = Proc.new(&block)
+			@events[event_name] = block
 		end
 		
 		# Fire the named event, which must have been registered using on.
@@ -87,7 +142,11 @@ module RubyDNS
 		#   end
 		#
 		def otherwise(&block)
-			@otherwise = Proc.new(&block)
+			@otherwise = block
+		end
+
+		def next!
+			throw :next
 		end
 
 		# Give a name and a record type, try to match a rule and use it for
@@ -99,55 +158,11 @@ module RubyDNS
 			@logger.debug "Searching for #{name} #{resource_class.name}"
 
 			@rules.each do |rule|
-				@logger.debug "Checking rule #{rule[0].inspect}..."
-				
-				pattern = rule[0]
+				@logger.debug "Checking rule #{rule}..."
 
-				# Match failed against resource_class?
-				case pattern[1]
-				when Class
-					next unless pattern[1] == resource_class
-					@logger.debug "Resource class #{resource_class.name} matched"
-				when Array
-					next unless pattern[1].include?(resource_class)
-					@logger.debug "Resource class #{resource_class} matched #{pattern[1].inspect}"
-				end
-
-				# Match succeeded against name?
-				case pattern[0]
-				when Regexp
-					match_data = pattern[0].match(name)
-					if match_data
-						@logger.debug "Query #{name} matched #{pattern[0].to_s} with result #{match_data.inspect}"
-						if rule[1].call(match_data, *args)
-							@logger.debug "Rule returned successfully"
-							return
-						end
-					else
-						@logger.debug "Query #{name} failed to match against #{pattern[0].to_s}"
-					end
-				when String
-					if pattern[0] == name
-						@logger.debug "Query #{name} matched #{pattern[0]}"
-						if rule[1].call(*args)
-							@logger.debug "Rule returned successfully"
-							return
-						end
-					else
-						@logger.debug "Query #{name} failed to match against #{pattern[0]}"
-					end
-				else
-					if pattern[0].respond_to? :call
-						if pattern[0].call(name)
-							@logger.debug "Query #{name} matched #{pattern[0]}"
-							if rule[1].call(*args)
-								@logger.debug "Rule returned successfully"
-								return
-							end
-						else
-							@logger.debug "Query #{name} failed to match against #{pattern[0]}"
-						end
-					end
+				catch (:next) do
+					# If the rule returns true, we assume that it was successful and no further rules need to be evaluated.
+					return true if rule.call(self, name, resource_class, *args)
 				end
 			end
 
@@ -196,9 +211,16 @@ module RubyDNS
 
 					# If there was an error, log it and fail:
 					transaction.errback do |response|
-						@logger.error "Exception thrown while processing #{transaction}!"
-						@logger.error "#{response.class}: #{response.message}"
-						response.backtrace.each { |at| @logger.error at }
+						if Exception === response
+							@logger.error "Exception thrown while processing #{transaction}!"
+							@logger.error "#{response.class}: #{response.message}"
+							if response.backtrace
+								Array(response.backtrace).each { |at| @logger.error at }
+							end
+						else
+							@logger.error "Failure while processing #{transaction}!"
+							@logger.error "#{response.inspect}"
+						end
 
 						answer.rcode = Resolv::DNS::RCode::ServFail
 
