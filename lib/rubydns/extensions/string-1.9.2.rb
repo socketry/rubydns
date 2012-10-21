@@ -19,19 +19,11 @@
 # THE SOFTWARE.
 
 require 'stringio'
+require 'rubydns/extensions/string-1.9.3'
 
 class String
 	def byteslice(*args)
-		self.dup.force_encoding("binary").slice(*args)
+		self.dup.force_encoding("BINARY").slice(*args)
 	end
 end
 
-module RubyDNS
-	class BinaryStringIO < StringIO
-		def initialize
-			super
-		
-			set_encoding("binary")
-		end
-	end
-end
