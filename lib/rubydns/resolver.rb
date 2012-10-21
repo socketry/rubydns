@@ -52,6 +52,21 @@ module RubyDNS
 			Request.fetch(message, @servers, @options, &block)
 		end
 
+		# Yields a list of `Resolv::IPv4` and `Resolv::IPv6` addresses for the given `name` and `resource_class`.
+		def addresses_for(name, resource_class = Resolv::DNS::Resource::IN::A, &block)
+			query(name, resource_class) do |response|
+				# Resolv::DNS::Name doesn't retain the trailing dot.
+				name = name.sub(/\.$/, '')
+				
+				case response
+				when Message
+					yield response.answer.select{|record| record[0].to_s == name}.collect{|record| record[2].address}
+				else
+					yield []
+				end
+			end
+		end
+
 		# Manages a single DNS question message across one or more servers.
 		class Request
 			include EventMachine::Deferrable
