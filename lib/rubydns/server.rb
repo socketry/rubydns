@@ -175,7 +175,7 @@ module RubyDNS
 
 		# Process an incoming DNS message. Returns a serialized message to be
 		# sent back to the client.
-		def process_query(query, &block)
+		def process_query(query, options = {}, &block)
 			# Setup answer
 			answer = Resolv::DNS::Message::new(query.id)
 			answer.qr = 1                 # 0 = Query, 1 = Response
@@ -201,7 +201,7 @@ module RubyDNS
 				chain << lambda do
 					@logger.debug "Processing question #{question} #{resource_class}..."
 
-					transaction = Transaction.new(self, query, question, resource_class, answer)
+					transaction = Transaction.new(self, query, question, resource_class, answer, options)
 					
 					# Call the next link in the chain:
 					transaction.callback do

@@ -53,6 +53,9 @@ module RubyDNS
 		# The current full answer to the incoming query.
 		attr :answer
 		
+		# Any options or configuration associated with the given transaction.
+		attr :options
+		
 		# Return the name of the question, which is typically the requested hostname.
 		def name
 			@question.to_s

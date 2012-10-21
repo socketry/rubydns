@@ -21,19 +21,24 @@
 require 'rubydns/message'
 
 module RubyDNS
+	
+	def self.get_peer_details(connection)
+		Socket.unpack_sockaddr_in(connection.get_peername)[1]
+	end
+	
 	module UDPHandler
 		def initialize(server)
 			@server = server
 		end
 
-		def self.process(server, data, &block)
+		def self.process(server, data, options = {}, &block)
 			server.logger.debug "Receiving incoming query (#{data.bytesize} bytes)..."
 			query = nil
 
 			begin
 				query = RubyDNS::decode_message(data)
 
-				return server.process_query(query, &block)
+				return server.process_query(query, options, &block)
 			rescue
 				server.logger.error "Error processing request!"
 				server.logger.error "#{$!.class}: #{$!.message}"
@@ -56,7 +61,9 @@ module RubyDNS
 		end
 		
 		def receive_data(data)
-			UDPHandler.process(@server, data) do |answer|
+			options = {:peer => RubyDNS::get_peer_details(self)}
+			
+			UDPHandler.process(@server, data, options) do |answer|
 				data = answer.encode
 				
 				@server.logger.debug "Writing response to client (#{data.bytesize} bytes) via UDP..."
@@ -107,7 +114,9 @@ module RubyDNS
 			if (@buffer.size - @processed) >= @length
 				data = @buffer.string.byteslice(@processed, @length)
 				
-				UDPHandler.process(@server, data) do |answer|
+				options = {:peer => RubyDNS::get_peer_details(self)}
+				
+				UDPHandler.process(@server, data, options) do |answer|
 					data = answer.encode
 					
 					@server.logger.debug "Writing response to client (#{data.bytesize} bytes) via TCP..."
