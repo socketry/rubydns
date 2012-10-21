@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'helper'
-require 'rubydns/resolver'
+require 'rubydns'
 
 class ResolverTest < Test::Unit::TestCase
 	def test_basic_resolver
@@ -31,5 +31,23 @@ class ResolverTest < Test::Unit::TestCase
 				EventMachine::stop
 			end
 		end
+	end
+	
+	def test_addresses_for
+		resolver = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
+		resolved_addresses = nil
+		
+		EventMachine::run do
+			resolver.addresses_for("www.google.com.") do |addresses|
+				resolved_addresses = addresses
+				
+				EventMachine::stop
+			end
+		end
+		
+		assert resolved_addresses.count > 0
+		
+		address = resolved_addresses[0]
+		assert address.kind_of?(Resolv::IPv4) || address.kind_of?(Resolv::IPv6)
 	end
 end
