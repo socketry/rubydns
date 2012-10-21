@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby1.9
+#!/usr/bin/env ruby
 
 # Copyright (c) 2009, 2011 Samuel G. D. Williams. <http://www.oriontransfer.co.nz>
 # 
@@ -22,11 +22,12 @@
 
 require 'rubygems'
 require 'rubydns'
+require 'rubydns/system'
 
 # You can specify other DNS servers easily
 # $R = Resolv::DNS.new(:nameserver => ["xx.xx.1.1", "xx.xx.2.2"])
 
-$R = Resolv::DNS.new
+R = RubyDNS::Resolver.new(RubyDNS::System::nameservers)
 Name = Resolv::DNS::Name
 IN = Resolv::DNS::Resource::IN
 
@@ -71,6 +72,6 @@ RubyDNS::run_server do
 	# Default DNS handler
 	otherwise do |transaction|
 		logger.info "Passing DNS request upstream..."
-		transaction.passthrough!($R)
+		transaction.passthrough!(R)
 	end
 end

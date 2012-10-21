@@ -7,6 +7,8 @@ require 'rubydns/resolver'
 require 'rubydns/extensions/string'
 
 class TruncatedServer < RExec::Daemon::Base
+	SERVER_PORTS = [[:udp, '127.0.0.1', 5320], [:tcp, '127.0.0.1', 5320]]
+	
 	@@base_directory = File.dirname(__FILE__)
 
 	Name = Resolv::DNS::Name
@@ -14,7 +16,7 @@ class TruncatedServer < RExec::Daemon::Base
 
 	def self.run
 		# Start the RubyDNS server
-		RubyDNS::run_server(:listen => [[:udp, '0.0.0.0', 5320], [:tcp, '0.0.0.0', 5320]]) do
+		RubyDNS::run_server(:listen => SERVER_PORTS) do
 			match("truncation", IN::TXT) do |transaction|
 				text = "Hello World! " * 100
 				transaction.respond!(*text.chunked)
@@ -38,7 +40,7 @@ class TruncationTest < Test::Unit::TestCase
 	end
 	
 	def test_tcp_failover
-		resolver = RubyDNS::Resolver.new([[:udp, '127.0.0.1', 5320], [:tcp, '127.0.0.1', 5320]])
+		resolver = RubyDNS::Resolver.new(TruncatedServer::SERVER_PORTS)
 		
 		EventMachine::run do
 			resolver.query("truncation", IN::TXT) do |response|

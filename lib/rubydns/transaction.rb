@@ -27,12 +27,14 @@ module RubyDNS
 	class Transaction
 		include EventMachine::Deferrable
 		
-		def initialize(server, query, question, resource_class, answer)
+		def initialize(server, query, question, resource_class, answer, options = {})
 			@server = server
 			@query = query
 			@question = question
 			@resource_class = resource_class
 			@answer = answer
+
+			@options = options
 
 			@deferred = false
 			@question_appended = false
@@ -63,8 +65,8 @@ module RubyDNS
 
 		# Run a new query through the rules with the given name and resource type. The
 		# results of this query are appended to the current transactions <tt>answer</tt>.
-		def append_query!(name, resource_class = nil)
-			Transaction.new(@server, @query, name, resource_class || @resource_class, @answer).process
+		def append_query!(name, resource_class = nil, options = {})
+			Transaction.new(@server, @query, name, resource_class || @resource_class, @answer, options).process
 		end
 
 		def process(&finished)
@@ -93,6 +95,8 @@ module RubyDNS
 				end
 				
 				@answer.merge!(response)
+				
+				succeed if @deferred
 			end
 			
 			true
@@ -117,8 +121,10 @@ module RubyDNS
 					case response
 					when RubyDNS::Message
 						yield response
-						succeed(response)
+					when RubyDNS::ResolverFailure
+						failure!(:ServFail)
 					else
+						# This shouldn't ever happen, but if it does for some reason we shouldn't hang.
 						fail(response)
 					end
 				end
@@ -166,6 +172,8 @@ module RubyDNS
 		# 
 		# <tt>options[:ttl]</tt>:: Specify the TTL for the resource
 		# <tt>options[:name]</tt>:: Override the name (question) of the response.
+		# <tt>options[:section]</tt>:: Specify whether the response should go in the `:answer`
+		#                             `:authority` or `:additional` section.
 		# 
 		# This function can be used to supply multiple responses to a given question.
 		# For example, each argument is expected to be an instantiated resource from
@@ -173,17 +181,27 @@ module RubyDNS
 		def append! (*resources)
 			append_question!
 
-			options = resources.last.kind_of?(Hash) ? resources.pop.dup : {}
-			options[:ttl] ||= 16000
-			options[:name] ||= @question.to_s + "."
-
-			resources.each do |resource|
-				@server.logger.debug "add_answer: #{resource.inspect} #{resource.class::TypeValue} #{resource.class::ClassValue}"
-				@answer.add_answer(options[:name], options[:ttl], resource)
+			if resources.last.kind_of?(Hash)
+				options = resources.pop
+			else
+				options = {}
 			end
 
-			# Raise an exception if there was something wrong with the resource
-			@answer.encode
+			# Use the default options if provided:
+			options = options.merge(@options)
+
+			options[:ttl] ||= 16000
+			options[:name] ||= @question.to_s + "."
+			
+			method = ("add_" + (options[:section] || 'answer').to_s).to_sym
+
+			resources.each do |resource|
+				@server.logger.debug "#{method}: #{resource.inspect} #{resource.class::TypeValue} #{resource.class::ClassValue}"
+				
+				@answer.send(method, options[:name], options[:ttl], resource)
+			end
+
+			succeed if @deferred
 
 			true
 		end
@@ -213,6 +231,9 @@ module RubyDNS
 			else
 				@answer.rcode = rcode.to_i
 			end
+
+			# The transaction itself has completed, but contains a failure:
+			succeed(rcode) if @deferred
 
 			true
 		end
