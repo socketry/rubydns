@@ -28,6 +28,4 @@ module RubyDNS
 			set_encoding("BINARY")
 		end
 	end
-	
-	
 end
