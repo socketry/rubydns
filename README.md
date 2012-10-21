@@ -18,38 +18,27 @@ For examples please see the main [project page][1].
 Basic Example
 -------------
 
-This is copied from `test/example1.rb`. It has been simplified slightly.
+This is copied from `test/examples/test-dns-2.rb`. It has been simplified slightly.
 
-	require 'rubygems'
 	require 'rubydns'
 
-	$R = Resolv::DNS.new
+	Name = Resolv::DNS::Name
+	IN = Resolv::DNS::Resource::IN
 
-	RubyDNS::run_server do
-		Name = Resolv::DNS::Name
-		IN = Resolv::DNS::Resource::IN
-		
-		# For this exact address record, return an IP address
-		match("dev.mydomain.org", IN::A) do |transaction|
-			transaction.respond!("10.0.0.80")
-		end
+	# Use upstream DNS for name resolution.
+	UPSTREAM = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
 
-		match(/^test([0-9]+).mydomain.org$/, IN::A) do |match_data, transaction|
-			offset = match_data[1].to_i
-
-			if offset > 0 && offset < 10
-				logger.info "Responding with address #{"10.0.0." + (90 + offset).to_s}..."
-				transaction.respond!("10.0.0." + (90 + offset).to_s)
-			else
-				logger.info "Address out of range: #{offset}!"
-				false
+	def self.run
+		# Start the RubyDNS server
+		RubyDNS::run_server(:listen => INTERFACES) do
+			match("test.mydomain.org", IN::A) do |transaction|
+				transaction.respond!("10.0.0.80")
 			end
-		end
 
-		# Default DNS handler
-		otherwise do |transaction|
-			logger.info "Passing DNS request upstream..."
-			transaction.passthrough!($R)
+			# Default DNS handler
+			otherwise do |transaction|
+				transaction.passthrough!(UPSTREAM)
+			end
 		end
 	end
 
