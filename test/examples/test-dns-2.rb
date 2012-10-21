@@ -21,11 +21,8 @@
 # THE SOFTWARE.
 
 require 'rubygems'
-
 require 'rexec'
 require 'rexec/daemon'
-
-require 'rubygems'
 require 'rubydns'
 
 # To run this command, use the standard daemon syntax as root
@@ -58,7 +55,7 @@ class Server < RExec::Daemon::Base
 	Name = Resolv::DNS::Name
 	IN = Resolv::DNS::Resource::IN
 
-	# Use upstream DNS for name resolution (These ones are Orcon DNS in NZ)
+	# Use upstream DNS for name resolution.
 	UPSTREAM = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
 
 	def self.run
