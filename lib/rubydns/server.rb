@@ -19,6 +19,7 @@
 # THE SOFTWARE.
 
 require 'rubydns/transaction'
+require 'rubydns/extensions/logger'
 
 module RubyDNS
 	
@@ -213,10 +214,7 @@ module RubyDNS
 					transaction.errback do |response|
 						if Exception === response
 							@logger.error "Exception thrown while processing #{transaction}!"
-							@logger.error "#{response.class}: #{response.message}"
-							if response.backtrace
-								Array(response.backtrace).each { |at| @logger.error at }
-							end
+							RubyDNS.log_exception(@logger, response)
 						else
 							@logger.error "Failure while processing #{transaction}!"
 							@logger.error "#{response.inspect}"
