@@ -35,6 +35,7 @@ module RubyDNS
 			data.force_encoding("BINARY")
 		end
 		
+		# This may throw Resolv::DNS::DecodeError.
 		Message.decode(data)
 	end
 end

@@ -111,12 +111,22 @@ module RubyDNS
 			end
 			
 			def process_response!(response)
-				if response.tc != 0
+				if Exception === response
+					@logger.warn "[#{@message.id}] Failure while processing response #{exception}!" if @logger
+					RubyDNS.log_exception(@logger, response) if @logger
+					
+					try_next_server!
+				elsif response.tc != 0
 					@logger.warn "[#{@message.id}] Received truncated response!" if @logger
-					# We hardcode this behaviour for now.
+					
+					try_next_server!
+				elsif response.id != @message.id
+					@logger.warn "[#{@message.id}] Received response with incorrect message id: #{response.id}" if @request.logger
+					
 					try_next_server!
 				else
 					@logger.warn "[#{@message.id}] Received valid response #{response.inspect}" if @logger
+					
 					succeed response
 				end
 			end
@@ -175,13 +185,11 @@ module RubyDNS
 				def receive_data(data)
 					# Receiving response from remote DNS server...
 					message = RubyDNS::decode_message(data)
-					
+						
 					# The message id must match, and it can't be truncated:
-					if message.id == @request.message.id
-						@request.process_response!(message)
-					else
-						@request.logger.warn "[#{@request.message.id}] Received response with incorrect message id: #{message.id}" if @request.logger
-					end
+					@request.process_response!(message)
+				rescue Resolv::DNS::DecodeError => error
+					@request.process_response!(error)
 				end
 			end
 			
@@ -220,12 +228,10 @@ module RubyDNS
 						
 						message = RubyDNS::decode_message(data)
 						
-						if message.id == @request.message.id
-							@request.process_response!(message)
-						else
-							@request.logger.warn "[#{@request.message.id}] Received response with incorrect message id: #{message.id}" if @request.logger
-						end
+						@request.process_response!(message)
 					end
+				rescue Resolv::DNS::DecodeError => error
+					@request.process_response!(error)
 				end
 			end
 		end
