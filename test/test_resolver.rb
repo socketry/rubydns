@@ -28,9 +28,41 @@ class ResolverTest < Test::Unit::TestCase
 		EventMachine::run do
 			resolver.query('google.com') do |response|
 				assert_equal RubyDNS::ResolutionFailure, response.class
+				
 				EventMachine::stop
 			end
 		end
+	end
+	
+	class MockRequest
+		attr :response
+		
+		def process_response!(response)
+			@response = response
+		end
+	end
+	
+	def test_dirty_packets_udp
+		mock_request = MockRequest.new
+		
+		handler_class = Class.new{ include RubyDNS::Resolver::Request::UDPRequestHandler }
+		handler = handler_class.new(mock_request, nil, nil)
+		
+		handler.receive_data("This is not a real message!")
+		
+		assert_equal Resolv::DNS::DecodeError, mock_request.response.class
+	end
+	
+	def test_dirty_packets_tcp
+		mock_request = MockRequest.new
+		
+		handler_class = Class.new{ include RubyDNS::Resolver::Request::TCPRequestHandler }
+		handler = handler_class.new(mock_request)
+		
+		data = "This is not a real message!"
+		handler.receive_data([data.length].pack('n') + data)
+		
+		assert_equal Resolv::DNS::DecodeError, mock_request.response.class
 	end
 	
 	def test_addresses_for
