@@ -124,7 +124,7 @@ module RubyDNS
 					case response
 					when RubyDNS::Message
 						yield response
-					when RubyDNS::ResolverFailure
+					when RubyDNS::ResolutionFailure
 						failure!(:ServFail)
 					else
 						# This shouldn't ever happen, but if it does for some reason we shouldn't hang.
