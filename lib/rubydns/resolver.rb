@@ -214,7 +214,8 @@ module RubyDNS
 						end
 					end
 
-					if @buffer.size == (@length + 2)
+					# If we have received more data than expected, should this be an error?
+					if @buffer.size >= (@length + 2)
 						data = @buffer.string.byteslice(2, @length)
 						
 						message = RubyDNS::decode_message(data)
@@ -224,8 +225,6 @@ module RubyDNS
 						else
 							@request.logger.warn "[#{@request.message.id}] Received response with incorrect message id: #{message.id}" if @request.logger
 						end
-					elsif @buffer.size > (@length + 2)
-						@request.try_next_server!
 					end
 				end
 			end
