@@ -1,9 +1,4 @@
-RubyDNS
-=======
-
-* Released under the MIT license.
-* Copyright (C) 2009, 2011 [Samuel G. D. Williams](http://www.codeotaku.com/samuel-williams/).
-* [![Build Status](https://secure.travis-ci.org/ioquatix/rubydns.png)](http://travis-ci.org/ioquatix/rubydns)
+# RubyDNS
 
 RubyDNS is a simple programmatic DSL (domain specific language) for configuring and running a DNS server. RubyDNS provides a daemon that runs a DNS server which can process DNS requests depending on specific policy. Rule selection is based on pattern matching, and results can be hard-coded, computed, fetched from a remote DNS server, fetched from a local cache, etc.
 
@@ -11,12 +6,9 @@ RubyDNS provides a full daemon server using RExec. You can either use the built 
 
 RubyDNS is not designed to be high-performance and uses a thread-per-request model. This is designed to make it as easy as possible to achieve concurrent performance. This is also due to the fact that many other APIs work best this way (unfortunately).
 
-For examples please see the main [project page][1].
+[![Build Status](https://secure.travis-ci.org/ioquatix/rubydns.png)](http://travis-ci.org/ioquatix/rubydns)
 
-[1]: http://www.oriontransfer.co.nz/gems/rubydns
-
-Basic Example
--------------
+## Basic Example
 
 This is copied from `test/examples/test-dns-2.rb`. It has been simplified slightly.
 
@@ -48,8 +40,11 @@ After starting this server you can test it using dig:
 	dig @localhost dev.mydomain.org
 	dig @localhost google.com
 
-Compatibility
--------------
+For examples and documentation please see the main [project page][1].
+
+[1]: http://www.oriontransfer.co.nz/gems/rubydns
+
+## Compatibility
 
 ### Migrating from RubyDNS 0.3.x to 0.4.x ###
 
@@ -119,16 +114,16 @@ Once you call this, the transaction won't complete until you call either `transa
 
 You can see a complete example in `test/test_slow_server.rb`.
 
-Todo
-----
+## Future
 
 * Support for more features of DNS such as zone transfer.
 * Support reverse records more easily.
 
-License
--------
+## License
 
-Copyright (c) 2010, 2011 Samuel G. D. Williams. <http://www.oriontransfer.co.nz>
+Released under the MIT license.
+
+Copyright, 2009, 2012, by [Samuel G. D. Williams](http://www.codeotaku.com/samuel-williams).
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
