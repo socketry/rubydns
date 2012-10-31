@@ -1,14 +1,30 @@
 # RubyDNS
 
-RubyDNS is a simple programmatic DSL (domain specific language) for configuring and running a DNS server. RubyDNS provides a daemon that runs a DNS server which can process DNS requests depending on specific policy. Rule selection is based on pattern matching, and results can be hard-coded, computed, fetched from a remote DNS server, fetched from a local cache, etc.
+RubyDNS is a high-performance DNS server which can be easily integrated into other projects or used as a stand-alone daemon (via RExec). By default it uses rule-based pattern matching. Results can be hard-coded, computed, fetched from a remote DNS server or fetched from a local cache, depending on requirements.
 
-RubyDNS provides a full daemon server using RExec. You can either use the built in daemon, customize it to your needs, or specify a full daemon implementation.
+In addition, RubyDNS includes a high-performance asynchronous DNS resolver built on top of EventMachine. This module can be used by itself in client applications without using the full RubyDNS server stack.
 
-RubyDNS is not designed to be high-performance and uses a thread-per-request model. This is designed to make it as easy as possible to achieve concurrent performance. This is also due to the fact that many other APIs work best this way (unfortunately).
+For examples and documentation please see the main [project page][1].
+
+[1]: http://www.oriontransfer.co.nz/gems/rubydns
 
 [![Build Status](https://secure.travis-ci.org/ioquatix/rubydns.png)](http://travis-ci.org/ioquatix/rubydns)
 
-## Basic Example
+## Installation
+
+Add this line to your application's Gemfile:
+
+    gem 'rubydns'
+
+And then execute:
+
+    $ bundle
+
+Or install it yourself as:
+
+    $ gem install rubydns
+
+## Usage
 
 This is copied from `test/examples/test-dns-2.rb`. It has been simplified slightly.
 
@@ -39,10 +55,6 @@ After starting this server you can test it using dig:
 	dig @localhost test1.mydomain.org
 	dig @localhost dev.mydomain.org
 	dig @localhost google.com
-
-For examples and documentation please see the main [project page][1].
-
-[1]: http://www.oriontransfer.co.nz/gems/rubydns
 
 ## Compatibility
 
@@ -114,7 +126,15 @@ Once you call this, the transaction won't complete until you call either `transa
 
 You can see a complete example in `test/test_slow_server.rb`.
 
-## Future
+## Contributing
+
+1. Fork it
+2. Create your feature branch (`git checkout -b my-new-feature`)
+3. Commit your changes (`git commit -am 'Add some feature'`)
+4. Push to the branch (`git push origin my-new-feature`)
+5. Create new Pull Request
+
+### Desired Features
 
 * Support for more features of DNS such as zone transfer.
 * Support reverse records more easily.
