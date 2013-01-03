@@ -57,9 +57,9 @@ end
 run
 ```
 Start the server using `rvmsudo ./test.rb`. You can then test it using dig:
-   $ dig @localhost test1.mydomain.org
-   $ dig @localhost dev.mydomain.org
-   $ dig @localhost google.com
+    $ dig @localhost test1.mydomain.org
+    $ dig @localhost dev.mydomain.org
+    $ dig @localhost google.com
 
 ## Compatibility
 
