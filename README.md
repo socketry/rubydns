@@ -56,80 +56,81 @@ def self.run
 end
 run
 ```
-Start the server using `rvmsudo ./test.rb`.
-After starting this server you can test it using dig:
-```bash
-dig @localhost test1.mydomain.org
-dig @localhost dev.mydomain.org
-dig @localhost google.com
-```
+Start the server using `rvmsudo ./test.rb`. You can then test it using dig:
+   $ dig @localhost test1.mydomain.org
+   $ dig @localhost dev.mydomain.org
+   $ dig @localhost google.com
+
 ## Compatibility
 
 ### Migrating from RubyDNS 0.3.x to 0.4.x ###
 
 Due to changes in `resolv.rb`, superficial parts of RubyDNS have changed. Rather than using `:A` to specify A-records, one must now use the class name.
-
-	match(..., :A)
-
+```ruby
+match(..., :A)
+```
 becomes
-
-	IN = Resolv::DNS::Resource::IN
-	match(..., IN::A)
-
+```ruby
+IN = Resolv::DNS::Resource::IN
+match(..., IN::A)
+```
 ### Migrating from RubyDNS 0.4.x to 0.5.x ###
 
 The system standard resolver was synchronous, and this could stall the server when making upstream requests to other DNS servers. A new resolver `RubyDNS::Resolver` now provides an asynchronous interface and the `Transaction::passthrough` makes exclusive use of this to provide high performance asynchonous resolution.
 
 Here is a basic example of how to use the new resolver in full. It is important to provide both `:udp` and `:tcp` connection specifications, so that large requests will be handled correctly:
+```ruby
+resolver = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
 
-	resolver = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
-	
-	EventMachine::run do
-		resolver.query('google.com', IN::A) do |response|
-			case response
-			when RubyDNS::Message
-				puts "Got response: #{response.answers.first}"
-			else
-				# Response is of class RubyDNS::ResolutionFailure
-				puts "Failed: #{response.message}"
-			end
-			
-			EventMachine::stop
+EventMachine::run do
+  resolver.query('google.com', IN::A) do |response|
+		case response
+		when RubyDNS::Message
+			puts "Got response: #{response.answers.first}"
+		else
+			# Response is of class RubyDNS::ResolutionFailure
+			puts "Failed: #{response.message}"
 		end
+
+		EventMachine::stop
 	end
-
+end
+```
 Existing code that uses `Resolv::DNS` as a resolver will need to be updated:
-
-	# 1/ Add this at the top of your file; Host specific system information:
-	require 'rubydns/system'
+```ruby
+# 1/ Add this at the top of your file; Host specific system information:
+require 'rubydns/system'
 	
-	# 2/ Change from R = Resolv::DNS.new to:
-	R = RubyDNS::Resolver.new(RubyDNS::System::nameservers)
-
+# 2/ Change from R = Resolv::DNS.new to:
+R = RubyDNS::Resolver.new(RubyDNS::System::nameservers)
+```
 Everything else in the server can remain the same. You can see a complete example in `test/test_resolver.rb`.
 
 #### Deferred Transactions ####
 
 The implementation of the above depends on a new feature which was added in 0.5.0:
 
-	transaction.defer!
+```ruby
+transaction.defer!
+```
 
 Once you call this, the transaction won't complete until you call either `transaction.succeed` or `transaction.fail`.
-
-	RubyDNS::run_server(:listen => SERVER_PORTS) do
-		match(/\.*.com/, IN::A) do |match, transaction|
-			transaction.defer!
-			
-			# No domain exists, after 5 seconds:
-			EventMachine::Timer.new(5) do
-				transaction.failure!(:NXDomain)
-			end
-		end
+```ruby
+RubyDNS::run_server(:listen => SERVER_PORTS) do
+	match(/\.*.com/, IN::A) do |match, transaction|
+		transaction.defer!
 		
-		otherwise do
+		# No domain exists, after 5 seconds:
+		EventMachine::Timer.new(5) do
 			transaction.failure!(:NXDomain)
 		end
 	end
+
+	otherwise do
+		transaction.failure!(:NXDomain)
+	end
+end
+```
 
 You can see a complete example in `test/test_slow_server.rb`.
 
