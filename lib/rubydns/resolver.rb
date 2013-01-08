@@ -121,7 +121,7 @@ module RubyDNS
 					
 					try_next_server!
 				elsif response.id != @message.id
-					@logger.warn "[#{@message.id}] Received response with incorrect message id: #{response.id}" if @request.logger
+					@logger.warn "[#{@message.id}] Received response with incorrect message id: #{response.id}" if @logger
 					
 					try_next_server!
 				else
