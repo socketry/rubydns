@@ -39,7 +39,7 @@ class TestPassthroughServer < RExec::Daemon::Base
 		
 		# Start the RubyDNS server
 		RubyDNS::run_server(:listen => SERVER_PORTS) do
-			match(/.*\.com/, IN::A) do |match, transaction|
+			match(/.*\.com/, IN::A) do |transaction|
 				transaction.passthrough!(resolver)
 			end
 

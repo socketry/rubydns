@@ -47,7 +47,7 @@ class DroppingDaemon < RExec::Daemon::Base
 	def self.run
 		RubyDNS::run_server(:listen => INTERFACES) do
 			# Fail the resolution of certain domains ;)
-			match(/(m?i?c?r?o?s?o?f?t)/) do |match_data, transaction|
+			match(/(m?i?c?r?o?s?o?f?t)/) do |transaction, match_data|
 				if match_data[1].size > 7
 					logger.info "Dropping domain MICROSOFT..."
 					transaction.failure!(:NXDomain)
@@ -58,7 +58,7 @@ class DroppingDaemon < RExec::Daemon::Base
 			end
 			
 			# Hmm....
-			match(/^(.+\.)?sco\./) do |match_data, transaction|
+			match(/^(.+\.)?sco\./) do |transaction|
 				logger.info "Dropping domain SCO..."
 				transaction.failure!(:NXDomain)
 			end

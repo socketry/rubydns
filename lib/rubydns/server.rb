@@ -58,7 +58,7 @@ module RubyDNS
 					match_data = @pattern[0].match(name)
 					if match_data
 						server.logger.debug "Regexp pattern matched with #{match_data.inspect}."
-						return @callback[match_data, *args]
+						return @callback[*args, match_data]
 					end
 				when String
 					if @pattern[0] == name

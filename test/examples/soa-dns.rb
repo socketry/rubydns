@@ -57,7 +57,7 @@ RubyDNS::run_server(:listen => [[:udp, "0.0.0.0", 5400]]) do
 
 	# For this exact address record, return an IP address
 	#   dig @localhost -p 5300 CNAME bob.mydomain.org
-	match(/([^.]+).mydomain.org/, IN::CNAME) do |match_data, transaction|
+	match(/([^.]+).mydomain.org/, IN::CNAME) do |transaction|
 		transaction.respond!(Name.create("www.mydomain.org"))
 		transaction.append_query!("www.mydomain.org", IN::A)
 	end

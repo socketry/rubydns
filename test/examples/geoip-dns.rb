@@ -52,7 +52,7 @@ class GeoIPDNSDaemon < RExec::Daemon::Base
 	
 	def self.run
 		RubyDNS::run_server(:listen => INTERFACES) do
-			match(//, IN::A) do |match_data, transaction|
+			match(//, IN::A) do |transaction|
 				location = nil
 				peer = transaction.options[:peer]
 				

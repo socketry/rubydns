@@ -37,7 +37,7 @@ class SlowServer < RExec::Daemon::Base
 
 	def self.run
 		RubyDNS::run_server(:listen => SERVER_PORTS) do
-			match(/\.*.com/, IN::A) do |match, transaction|
+			match(/\.*.com/, IN::A) do |transaction|
 				transaction.defer!
 			
 				# No domain exists, after 5 seconds:
