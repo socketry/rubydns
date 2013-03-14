@@ -69,6 +69,8 @@ $ dig @localhost google.com
 
 The order of arguments to pattern based rules has changed. For regular expression based rules, the arguments are now ordered `|transaction, match_data|`. The main reason for this change was that in many cases match_data is not important and can thus be ignored, e.g. `|transaction|`.
 
+Going forward, Ruby 1.8.x is no longer supported.
+
 ### Migrating from RubyDNS 0.3.x to 0.4.x ###
 
 Due to changes in `resolv.rb`, superficial parts of RubyDNS have changed. Rather than using `:A` to specify A-records, one must now use the class name.
