@@ -41,7 +41,7 @@ class BasicTestServer < RExec::Daemon::Base
 				transaction.respond!("192.168.1.1")
 			end
 
-			match(/foo.*/, IN::A) do |match, transaction|
+			match(/foo.*/, IN::A) do |transaction|
 				transaction.respond!("192.168.1.2")
 			end
 

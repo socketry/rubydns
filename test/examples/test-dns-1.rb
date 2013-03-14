@@ -35,7 +35,7 @@ RubyDNS::run_server do
 	# % dig +nocmd +noall +answer @localhost ANY dev.mydomain.org
 	# dev.mydomain.org.	16000	IN	A	10.0.0.80
 	# dev.mydomain.org.	16000	IN	MX	10 mail.mydomain.org.
-	match(/dev.mydomain.org/, IN::ANY) do |match_data, transaction|
+	match(/dev.mydomain.org/, IN::ANY) do |transaction|
 		transaction.append_question!
 		
 		[IN::A, IN::CNAME, IN::MX].each do |resource_class|
@@ -57,7 +57,7 @@ RubyDNS::run_server do
 		transaction.respond!(10, Name.create("mail.mydomain.org."))
 	end
 	
-	match(/^test([0-9]+).mydomain.org$/, IN::A) do |match_data, transaction|
+	match(/^test([0-9]+).mydomain.org$/, IN::A) do |transaction, match_data|
 		offset = match_data[1].to_i
 		
 		if offset > 0 && offset < 10

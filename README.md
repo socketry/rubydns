@@ -44,7 +44,7 @@ UPSTREAM = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
 def self.run
     # Start the RubyDNS server
     RubyDNS::run_server(:listen => INTERFACES) do
-        match(/test.mydomain.org/, IN::A) do |_host, transaction|
+        match(/test.mydomain.org/, IN::A) do |transaction|
             transaction.respond!("10.0.0.80")
         end
 
@@ -64,6 +64,10 @@ $ dig @localhost google.com
 ```
 
 ## Compatibility
+
+### Migrating from RubyDNS 0.5.x to 0.6.x ###
+
+The order of arguments to pattern based rules has changed. For regular expression based rules, the arguments are now ordered `|transaction, match_data|`. The main reason for this change was that in many cases match_data is not important and can thus be ignored, e.g. `|transaction|`.
 
 ### Migrating from RubyDNS 0.3.x to 0.4.x ###
 
@@ -119,7 +123,7 @@ transaction.defer!
 Once you call this, the transaction won't complete until you call either `transaction.succeed` or `transaction.fail`.
 ```ruby
 RubyDNS::run_server(:listen => SERVER_PORTS) do
-	match(/\.*.com/, IN::A) do |match, transaction|
+	match(/\.*.com/, IN::A) do |transaction|
 		transaction.defer!
 		
 		# No domain exists, after 5 seconds:

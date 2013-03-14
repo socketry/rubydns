@@ -67,12 +67,12 @@ class FortuneDNS < RExec::Daemon::Base
 				end
 			end
 			
-			match(/stats\.fortune/, IN::TXT) do |match, transaction|
+			match(/stats\.fortune/, IN::TXT) do |transaction|
 				$stderr.puts "Sending stats: #{stats.inspect}"
 				transaction.respond!(stats.inspect)
 			end
 			
-			match(/(.+)\.fortune/, IN::TXT) do |match, transaction|
+			match(/(.+)\.fortune/, IN::TXT) do |transaction|
 				fortune = cache[match[1]]
 				stats[:requested] += 1
 				
@@ -83,7 +83,7 @@ class FortuneDNS < RExec::Daemon::Base
 				end
 			end
 			
-			match(/fortune/, [IN::CNAME, IN::TXT]) do |match, transaction|
+			match(/fortune/, [IN::CNAME, IN::TXT]) do |transaction|
 				fortune = `fortune`.gsub(/\s+/, " ").strip
 				checksum = Digest::MD5.hexdigest(fortune)
 				cache[checksum] = fortune
