@@ -26,6 +26,8 @@ Gem::Specification.new do |gem|
 	gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
 	gem.require_paths = ["lib"]
 
+	gem.required_ruby_version = '~> 1.9.2'
+
 	gem.add_dependency("rexec", "~> 1.5.1")
 	gem.add_dependency("eventmachine", "~> 1.0.0")
 
