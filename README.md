@@ -27,6 +27,7 @@ Or install it yourself as:
 ## Usage
 
 This is copied from `test/examples/test-dns-2.rb`. It has been simplified slightly.
+
 ```ruby
 #!/usr/bin/env ruby
 require 'rubydns'
@@ -56,7 +57,9 @@ def self.run
 end
 run
 ```
+
 Start the server using `rvmsudo ./test.rb`. You can then test it using dig:
+
 ```
 $ dig @localhost test1.mydomain.org
 $ dig @localhost dev.mydomain.org
