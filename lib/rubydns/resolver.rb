@@ -216,20 +216,22 @@ module RubyDNS
 					@buffer ||= BinaryStringIO.new
 					@buffer.write(data)
 
-					if @length == nil
-						if @buffer.size > 2
-							@length = @buffer.string.byteslice(0, 2).unpack('n')[0]
-						end
+					# If we've received enough data and we haven't figured out the length yet...
+					if @length == nil and @buffer.size > 2
+						# Extract the length from the buffer:
+						@length = @buffer.string.byteslice(0, 2).unpack('n')[0]
 					end
 
-					# If we have received more data than expected, should this be an error?
-					if !@length.nil? && @buffer.size >= (@length + 2)
+					# If we know what the length is, and we've got that much data, we can decode the message:
+					if @length != nil and @buffer.size >= (@length + 2)
 						data = @buffer.string.byteslice(2, @length)
 						
 						message = RubyDNS::decode_message(data)
 						
 						@request.process_response!(message)
 					end
+					
+					# If we have received more data than expected, should this be an error?
 				rescue Resolv::DNS::DecodeError => error
 					@request.process_response!(error)
 				end
