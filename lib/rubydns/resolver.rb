@@ -223,7 +223,7 @@ module RubyDNS
 					end
 
 					# If we have received more data than expected, should this be an error?
-					if @buffer.size >= (@length + 2)
+					if !@length.nil? && @buffer.size >= (@length + 2)
 						data = @buffer.string.byteslice(2, @length)
 						
 						message = RubyDNS::decode_message(data)
