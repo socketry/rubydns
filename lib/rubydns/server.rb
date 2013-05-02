@@ -102,7 +102,7 @@ module RubyDNS
 			end
 		end
 
-		attr :logger, true
+		attr_writer :logger
 
 		# This function connects a pattern with a block. A pattern is either
 		# a String or a Regex instance. Optionally, a second argument can be
