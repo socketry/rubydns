@@ -69,7 +69,7 @@ module RubyDNS
     server = RubyDNS::Server.new(&block)
     
     # Set the logger from options if present
-    @logger = options[:logger] if options[:logger]
+    server.logger = options[:logger] if options[:logger]
     
     # Set the logger from command line if given
     if ARGV.include? "--log"
@@ -78,7 +78,7 @@ module RubyDNS
       raise ArgumentError, "Logfile must be specified after the --log argument" if ARGV[index].nil?
       
       logfile = ARGV[index]
-      @logger = Logger.new(logfile)
+      server.logger = Logger.new(logfile)
       
     end
     
