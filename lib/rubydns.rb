@@ -68,7 +68,19 @@ module RubyDNS
     
     server = RubyDNS::Server.new(&block)
     
-    @logger = options[:logger] if options[:logger]
+    # Set the log from one of the available sources
+    if ARGV.include? "--log"
+      
+      index = ARGV.index("--log")+1
+      raise ArgumentError, "Logfile must be specified after the --log argument" if ARGV[index].nil?
+      
+      logfile = ARGV[index]
+      @logger = Logger.new(logfile)
+    
+    else if options[:logger]
+      @logger = options[:logger]
+    end
+    
     server.logger.info "Starting RubyDNS server (v#{RubyDNS::VERSION})..."
     
     options[:listen] ||= [[:udp, "0.0.0.0", 53], [:tcp, "0.0.0.0", 53]]
