@@ -65,8 +65,10 @@ module RubyDNS
   # to run as root for this to work, since port 53 is privileged.
   #
   def self.run_server (options = {}, &block)
+    
     server = RubyDNS::Server.new(&block)
-    server.logger = options[:logger] if !options[:logger].nil?
+    
+    @logger = options[:logger] if options[:logger]
     server.logger.info "Starting RubyDNS server (v#{RubyDNS::VERSION})..."
     
     options[:listen] ||= [[:udp, "0.0.0.0", 53], [:tcp, "0.0.0.0", 53]]
