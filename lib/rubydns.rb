@@ -68,7 +68,10 @@ module RubyDNS
     
     server = RubyDNS::Server.new(&block)
     
-    # Set the log from one of the available sources
+    # Set the logger from options if present
+    @logger = options[:logger] if options[:logger]
+    
+    # Set the logger from command line if given
     if ARGV.include? "--log"
       
       index = ARGV.index("--log")+1
@@ -76,9 +79,7 @@ module RubyDNS
       
       logfile = ARGV[index]
       @logger = Logger.new(logfile)
-    
-    else if options[:logger]
-      @logger = options[:logger]
+      
     end
     
     server.logger.info "Starting RubyDNS server (v#{RubyDNS::VERSION})..."
