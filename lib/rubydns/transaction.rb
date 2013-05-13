@@ -147,7 +147,7 @@ module RubyDNS
 		# <tt>options[:name]</tt>:: Override the name (question) of the response.
 		#
 		# for A records:: <tt>respond!("1.2.3.4")</tt>
-		# for MX records::  <tt>respond!("mail.blah.com", 10)</tt>
+		# for MX records::  <tt>respond!(10, Name.create("mail.blah.com"))</tt>
 		#
 		# This function instantiates the resource class with the supplied arguments, and
 		# then passes it to <tt>append!</tt>.
