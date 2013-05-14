@@ -35,7 +35,7 @@ class ResolverTest < Test::Unit::TestCase
 		end
 		
 		EventMachine::run do
-			resolver.query('nonexistant.private') do |response|
+			resolver.query('foobar.oriontransfer.org') do |response|
 				assert_equal response.rcode, Resolv::DNS::RCode::NXDomain
 				EventMachine::stop
 			end
