@@ -115,12 +115,19 @@ module RubyDNS
 		#
 		# A second argument, options, provides some control over the passthrough process.
 		# :force => true, ensures that the query will occur even if recursion is not requested.
+		# :name => resource_name, override the name for the request as it is passed to 
+		# the resolver. Implies :force.
+		# :resource_class => class, overried the resource class for a request as it is passed
+		# to the resolver.
 		def passthrough(resolver, options = {}, &block)
-			if @query.rd || options[:force]
+			if @query.rd || options[:force] || options[:name]
 				# Resolver is asynchronous, so we are now deferred:
 				defer!
 
-				resolver.query(name, resource_class) do |response|
+				query_name = options[:name] || name
+				query_resource_class = options[:resource_class] || resource_class
+
+				resolver.query(query_name, query_resource_class) do |response|
 					case response
 					when RubyDNS::Message
 						yield response
