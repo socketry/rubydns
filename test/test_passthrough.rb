@@ -43,6 +43,10 @@ class TestPassthroughServer < RExec::Daemon::Base
 				transaction.passthrough!(resolver)
 			end
 
+			match(/a-(.*\.org)/) do |transaction, match_data|
+				transaction.passthrough!(resolver, :name => match_data[1])
+			end
+
 			# Default DNS handler
 			otherwise do |transaction|
 				transaction.failure!(:NXDomain)
@@ -75,6 +79,26 @@ class PassthroughTest < Test::Unit::TestCase
 			end
 		end
 		
+		assert answer != nil
+		assert answer.count > 0
+	end
+	
+	def test_basic_dns_prefix
+		answer = nil
+		
+		assert_equal :running, RExec::Daemon::ProcessFile.status(TestPassthroughServer)
+		
+		EventMachine.run do
+			resolver = RubyDNS::Resolver.new(TestPassthroughServer::SERVER_PORTS)
+		
+			resolver.query("a-slashdot.org") do |response|
+				answer = response.answer.first
+				
+				EventMachine.stop
+			end
+		end
+		
+		assert answer != nil
 		assert answer.count > 0
 	end
 end
