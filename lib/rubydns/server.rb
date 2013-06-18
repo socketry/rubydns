@@ -103,6 +103,10 @@ module RubyDNS
 		end
 
 		attr :logger, true
+		
+		def logger=(logger)
+		  @logger = logger
+		end
 
 		# This function connects a pattern with a block. A pattern is either
 		# a String or a Regex instance. Optionally, a second argument can be

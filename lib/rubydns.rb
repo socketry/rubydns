@@ -21,11 +21,11 @@
 require 'rubydns/version'
 
 if RUBY_VERSION < "1.9"
-	require 'rubydns/extensions/string-1.8'
+  require 'rubydns/extensions/string-1.8'
 elsif RUBY_VERSION < "1.9.3"
-	require 'rubydns/extensions/string-1.9.2'
+  require 'rubydns/extensions/string-1.9.2'
 else
-	require 'rubydns/extensions/string-1.9.3'
+  require 'rubydns/extensions/string-1.9.3'
 end
 
 require 'rubydns/message'
@@ -41,51 +41,67 @@ require 'rexec/daemon'
 require 'rubydns/handler'
 
 module RubyDNS
-	
-	# Run a server with the given rules. A number of options can be supplied:
-	#
-	# <tt>:interfaces</tt>:: A set of sockets or addresses as defined below.
-	#
-	# One important feature of DNS is the port it runs on. The <tt>options[:listen]</tt>
-	# allows you to specify a set of network interfaces and ports to run the server on. This
-	# must be a list of <tt>[protocol, interface address, port]</tt>.
-	# 
-	#   INTERFACES = [[:udp, "0.0.0.0", 5300]]
-	#   RubyDNS::run_server(:listen => INTERFACES) do
-	#     ...
-	#   end
-	#
-	# You can specify already connected sockets if need be:
-	#
-	#   socket = UDPSocket.new; socket.bind("0.0.0.0", 53)
-	#   Process::Sys.setuid(server_uid)
-	#   INTERFACES = [socket]
-	#
-	# The default interface is <tt>[[:udp, "0.0.0.0", 53]]</tt>. The server typically needs
-	# to run as root for this to work, since port 53 is privileged.
-	#
-	def self.run_server (options = {}, &block)
-		server = RubyDNS::Server.new(&block)
-		server.logger.info "Starting RubyDNS server (v#{RubyDNS::VERSION})..."
-		
-		options[:listen] ||= [[:udp, "0.0.0.0", 53], [:tcp, "0.0.0.0", 53]]
-		
-		EventMachine.run do
-			server.fire(:setup)
-			
-			# Setup server sockets
-			options[:listen].each do |spec|
-				server.logger.info "Listening on #{spec.join(':')}"
-				if spec[0] == :udp
-					EventMachine.open_datagram_socket(spec[1], spec[2], UDPHandler, server)
-				elsif spec[0] == :tcp
-					EventMachine.start_server(spec[1], spec[2], TCPHandler, server)
-				end
-			end
-			
-			server.fire(:start)
-		end
-		
-		server.fire(:stop)
-	end
+  
+  # Run a server with the given rules. A number of options can be supplied:
+  #
+  # <tt>:interfaces</tt>:: A set of sockets or addresses as defined below.
+  #
+  # One important feature of DNS is the port it runs on. The <tt>options[:listen]</tt>
+  # allows you to specify a set of network interfaces and ports to run the server on. This
+  # must be a list of <tt>[protocol, interface address, port]</tt>.
+  # 
+  #   INTERFACES = [[:udp, "0.0.0.0", 5300]]
+  #   RubyDNS::run_server(:listen => INTERFACES) do
+  #     ...
+  #   end
+  #
+  # You can specify already connected sockets if need be:
+  #
+  #   socket = UDPSocket.new; socket.bind("0.0.0.0", 53)
+  #   Process::Sys.setuid(server_uid)
+  #   INTERFACES = [socket]
+  #
+  # The default interface is <tt>[[:udp, "0.0.0.0", 53]]</tt>. The server typically needs
+  # to run as root for this to work, since port 53 is privileged.
+  #
+  def self.run_server (options = {}, &block)
+    
+    server = RubyDNS::Server.new(&block)
+    
+    # Set the logger from options if present
+    server.logger = options[:logger] if options[:logger]
+    
+    # Set the logger from command line if given
+    if ARGV.include? "--log"
+      
+      index = ARGV.index("--log")+1
+      raise ArgumentError, "Logfile must be specified after the --log argument" if ARGV[index].nil?
+      
+      logfile = ARGV[index]
+      server.logger = Logger.new(logfile)
+      
+    end
+    
+    server.logger.info "Starting RubyDNS server (v#{RubyDNS::VERSION})..."
+    
+    options[:listen] ||= [[:udp, "0.0.0.0", 53], [:tcp, "0.0.0.0", 53]]
+    
+    EventMachine.run do
+      server.fire(:setup)
+      
+      # Setup server sockets
+      options[:listen].each do |spec|
+        server.logger.info "Listening on #{spec.join(':')}"
+        if spec[0] == :udp
+          EventMachine.open_datagram_socket(spec[1], spec[2], UDPHandler, server)
+        elsif spec[0] == :tcp
+          EventMachine.start_server(spec[1], spec[2], TCPHandler, server)
+        end
+      end
+      
+      server.fire(:start)
+    end
+    
+    server.fire(:stop)
+  end
 end

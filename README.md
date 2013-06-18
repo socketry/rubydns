@@ -39,13 +39,14 @@ INTERFACES = [
 ]
 Name = Resolv::DNS::Name
 IN = Resolv::DNS::Resource::IN
+logger = Logger.new("~/rubydns.log")
 
 # Use upstream DNS for name resolution.
 UPSTREAM = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
 
 def self.run
     # Start the RubyDNS server
-    RubyDNS::run_server(:listen => INTERFACES) do
+    RubyDNS::run_server(:listen => INTERFACES, :logger => logger) do
         match(/test.mydomain.org/, IN::A) do |transaction|
             transaction.respond!("10.0.0.80")
         end
