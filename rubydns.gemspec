@@ -3,12 +3,12 @@ lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'rubydns/version'
 
-Gem::Specification.new do |gem|
-	gem.name          = "rubydns"
-	gem.version       = RubyDNS::VERSION
-	gem.authors       = ["Samuel Williams"]
-	gem.email         = ["samuel.williams@oriontransfer.co.nz"]
-	gem.description   = <<-EOF
+Gem::Specification.new do |spec|
+	spec.name          = "rubydns"
+	spec.version       = RubyDNS::VERSION
+	spec.authors       = ["Samuel Williams"]
+	spec.email         = ["samuel.williams@oriontransfer.co.nz"]
+	spec.description   = <<-EOF
 		RubyDNS is a high-performance DNS server which can be easily integrated into
 		other projects or used as a stand-alone daemon (via RExec). By default it uses
 		rule-based pattern matching. Results can be hard-coded, computed, fetched from
@@ -18,18 +18,19 @@ Gem::Specification.new do |gem|
 		built on top of EventMachine. This module can be used by itself in client
 		applications without using the full RubyDNS server stack.
 	EOF
-	gem.summary       = "An easy to use DNS server and resolver for Ruby."
-	gem.homepage      = "http://www.codeotaku.com/projects/rubydns"
+	spec.summary       = "An easy to use DNS server and resolver for Ruby."
+	spec.homepage      = "http://www.codeotaku.com/projects/rubydns"
+	spec.license       = "MIT"
 
-	gem.files         = `git ls-files`.split($/)
-	gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
-	gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
-	gem.require_paths = ["lib"]
+	spec.files         = `git ls-files`.split($/)
+	spec.executables   = spec.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
+	spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
+	spec.require_paths = ["lib"]
 
-	gem.required_ruby_version = '>= 1.9.3'
+	spec.required_ruby_version = '>= 1.9.3'
 
-	gem.add_dependency("rexec", "~> 1.5.1")
-	gem.add_dependency("eventmachine", "~> 1.0.0")
+	spec.add_dependency("rexec", "~> 1.5.1")
+	spec.add_dependency("eventmachine", "~> 1.0.0")
 
-	gem.has_rdoc = "yard"
+	spec.has_rdoc = "yard"
 end
