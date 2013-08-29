@@ -49,6 +49,10 @@ module RubyDNS
 			message.rd = 1
 			message.add_question name, resource_class
 			
+			send_message(message, &block)
+		end
+
+		def send_message(message, &block)
 			Request.fetch(message, @servers, @options, &block)
 		end
 
