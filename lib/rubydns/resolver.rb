@@ -30,6 +30,7 @@ module RubyDNS
 	class Resolver
 		# Servers are specified in the same manor as options[:listen], e.g.
 		#   [:tcp/:udp, address, port]
+		# The sequence number can be capped with options[:sequence_max]
 		# In the case of multiple servers, they will be checked in sequence.
 		def initialize(servers, options = {})
 			@servers = servers
@@ -40,7 +41,7 @@ module RubyDNS
 
 		# Provides the next sequence identification number which is used to keep track of DNS messages.
 		def next_id!
-			return (@sequence += 1)
+			return (@options[:sequence_max] && @sequence >= @options[:sequence_max]) ? (@sequence = 0) : (@sequence += 1)
 		end
 
 		# Look up a named resource of the given resource_class.
