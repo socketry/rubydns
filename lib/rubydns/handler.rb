@@ -1,15 +1,15 @@
 # Copyright, 2009, 2012, by Samuel G. D. Williams. <http://www.codeotaku.com>
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,18 +21,18 @@
 require 'rubydns/message'
 
 module RubyDNS
-	
-	def self.get_peer_details(connection)
-		Socket.unpack_sockaddr_in(connection.get_peername)[1]
+
+	def self.get_peer_details(peer_name)
+		Socket.unpack_sockaddr_in(peer_name)
 	end
-	
-	module UDPHandler
+
+	class UDPHandler < EM::Connection
 		def initialize(server)
 			@server = server
 		end
 
 		def self.process(server, data, options = {}, &block)
-			server.logger.debug "Receiving incoming query (#{data.bytesize} bytes)..."
+			server.logger.debug "Receiving incoming query (#{data.bytesize} bytes) from #{options[:peer].inspect}..."
 			query = nil
 
 			begin
@@ -59,82 +59,83 @@ module RubyDNS
 				yield server_failure
 			end
 		end
-		
+
 		def receive_data(data)
-			options = {:peer => RubyDNS::get_peer_details(self)}
-			
+			peer_port, peer_ip = RubyDNS::get_peer_details(get_peername)
+			options = {:peer => [peer_port, peer_ip]}
+
 			UDPHandler.process(@server, data, options) do |answer|
 				data = answer.encode
-				
+
 				@server.logger.debug "Writing response to client (#{data.bytesize} bytes) via UDP..."
-				
+
 				if data.bytesize > UDP_TRUNCATION_SIZE
 					@server.logger.warn "Response via UDP was larger than #{UDP_TRUNCATION_SIZE}!"
-					
+
 					# Reencode data with truncation flag marked as true:
 					truncation_error = Resolv::DNS::Message.new(answer.id)
 					truncation_error.tc = 1
-					
+
 					data = truncation_error.encode
 				end
-				
-				self.send_data(data)
+
+				self.send_datagram(data, peer_ip, peer_port)
 			end
 		end
 	end
-	
+
 	class LengthError < StandardError
 	end
-	
-	module TCPHandler
+
+	class TCPHandler < EM::Connection
 		def initialize(server)
 			@server = server
-			
+
 			@buffer = BinaryStringIO.new
-			
+
 			@length = nil
 			@processed = 0
 		end
-		
+
 		def receive_data(data)
 			# We buffer data until we've received the entire packet:
 			@buffer.write(data)
-			
+
 			# Message includes a 16-bit length field.. we need to see if we have received it yet:
 			if @length == nil
 				if (@buffer.size - @processed) < 2
 					raise LengthError.new("Malformed message smaller than two bytes received")
 				end
-				
+
 				# Grab the length field:
 				@length = @buffer.string.byteslice(@processed, 2).unpack('n')[0]
 				@processed += 2
 			end
-			
+
 			if (@buffer.size - @processed) >= @length
 				data = @buffer.string.byteslice(@processed, @length)
-				
+
 				options = {:peer => RubyDNS::get_peer_details(self)}
-				
+
 				UDPHandler.process(@server, data, options) do |answer|
 					data = answer.encode
-					
+
 					@server.logger.debug "Writing response to client (#{data.bytesize} bytes) via TCP..."
-					
+
 					self.send_data([data.bytesize].pack('n'))
 					self.send_data(data)
 				end
-				
+
 				@processed += @length
 				@length = nil
 			end
 		end
-		
+
 		def unbind
 			if @processed != @buffer.size
 				raise LengthError.new("Unprocessed data remaining (#{@buffer.size - @processed} bytes unprocessed)")
 			end
 		end
 	end
-	
+
 end

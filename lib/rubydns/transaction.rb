@@ -1,15 +1,15 @@
 # Copyright, 2009, 2012, by Samuel G. D. Williams. <http://www.codeotaku.com>
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -26,7 +26,7 @@ module RubyDNS
 	# is used by the DSL to provide DNS related functionality.
 	class Transaction
 		include EventMachine::Deferrable
-		
+
 		def initialize(server, query, question, resource_class, answer, options = {})
 			@server = server
 			@query = query
@@ -43,19 +43,19 @@ module RubyDNS
 		# The resource_class that was requested. This is typically used to generate a
 		# response.
 		attr :resource_class
-		
+
 		# The incoming query which is a set of questions.
 		attr :query
-		
+
 		# The question that this transaction represents.
 		attr :question
-		
+
 		# The current full answer to the incoming query.
 		attr :answer
-		
+
 		# Any options or configuration associated with the given transaction.
 		attr :options
-		
+
 		# Return the name of the question, which is typically the requested hostname.
 		def name
 			@question.to_s
@@ -96,15 +96,15 @@ module RubyDNS
 				if block_given?
 					yield response
 				end
-				
+
 				@answer.merge!(response)
-				
+
 				succeed if @deferred
 			end
-			
+
 			true
 		end
-		
+
 		# Use the given resolver to respond to the question. If recursion is
 		# not requested, the result is <tt>failure!(:Refused)</tt>. If the resolver does
 		# not respond, the result is <tt>failure!(:NXDomain)</tt>
@@ -115,7 +115,7 @@ module RubyDNS
 		#
 		# A second argument, options, provides some control over the passthrough process.
 		# :force => true, ensures that the query will occur even if recursion is not requested.
-		# :name => resource_name, override the name for the request as it is passed to 
+		# :name => resource_name, override the name for the request as it is passed to
 		# the resolver. Implies :force.
 		# :resource_class => class, overried the resource class for a request as it is passed
 		# to the resolver.
@@ -141,7 +141,7 @@ module RubyDNS
 			else
 				failure!(:Refused)
 			end
-			
+
 			true
 		end
 
@@ -159,32 +159,32 @@ module RubyDNS
 		# This function instantiates the resource class with the supplied arguments, and
 		# then passes it to <tt>append!</tt>.
 		#
-		# See <tt>Resolv::DNS::Resource</tt> for more information about the various 
-		# <tt>resource_class</tt>s available. 
+		# See <tt>Resolv::DNS::Resource</tt> for more information about the various
+		# <tt>resource_class</tt>s available.
 		# http://www.ruby-doc.org/stdlib/libdoc/resolv/rdoc/index.html
 		def respond! (*data)
 			options = data.last.kind_of?(Hash) ? data.pop : {}
 			resource_class = options[:resource_class] || @resource_class
-			
+
 			if resource_class == nil
 				raise ArgumentError, "Could not instantiate resource #{resource_class}!"
 			end
-			
+
 			@server.logger.info "Resource class: #{resource_class.inspect}"
 			resource = resource_class.new(*data)
 			@server.logger.info "Resource: #{resource.inspect}"
-			
+
 			append!(resource, options)
 		end
 
-		# Append a given set of resources to the answer. The last argument can 
+		# Append a given set of resources to the answer. The last argument can
 		# optionally be a hash of options.
-		# 
+		#
 		# <tt>options[:ttl]</tt>:: Specify the TTL for the resource
 		# <tt>options[:name]</tt>:: Override the name (question) of the response.
 		# <tt>options[:section]</tt>:: Specify whether the response should go in the `:answer`
 		#                             `:authority` or `:additional` section.
-		# 
+		#
 		# This function can be used to supply multiple responses to a given question.
 		# For example, each argument is expected to be an instantiated resource from
 		# <tt>Resolv::DNS::Resource</tt> module.
@@ -202,12 +202,12 @@ module RubyDNS
 
 			options[:ttl] ||= 16000
 			options[:name] ||= @question.to_s + "."
-			
+
 			method = ("add_" + (options[:section] || 'answer').to_s).to_sym
 
 			resources.each do |resource|
 				@server.logger.debug "#{method}: #{resource.inspect} #{resource.class::TypeValue} #{resource.class::ClassValue}"
-				
+
 				@answer.send(method, options[:name], options[:ttl], resource)
 			end
 
