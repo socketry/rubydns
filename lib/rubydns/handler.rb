@@ -23,7 +23,7 @@ require 'rubydns/message'
 module RubyDNS
 	
 	def self.get_peer_details(connection)
-		Socket.unpack_sockaddr_in(connection.get_peername)[1]
+		Socket.unpack_sockaddr_in(connection.get_peername)
 	end
 	
 	module UDPHandler
@@ -61,7 +61,8 @@ module RubyDNS
 		end
 		
 		def receive_data(data)
-			options = {:peer => RubyDNS::get_peer_details(self)}
+			peer_port, peer_ip = RubyDNS::get_peer_details(self)
+			options = {:peer => peer_ip}
 			
 			UDPHandler.process(@server, data, options) do |answer|
 				data = answer.encode
@@ -78,7 +79,8 @@ module RubyDNS
 					data = truncation_error.encode
 				end
 				
-				self.send_data(data)
+				# We explicitly use the ip and port given, because we found that send_data was unreliable in a callback.
+				self.send_datagram(data, peer_ip, peer_port)
 			end
 		end
 	end
