@@ -116,6 +116,8 @@ module RubyDNS
 			end
 			
 			def process_response!(response)
+				finish_request!
+				
 				if Exception === response
 					@logger.warn "[#{@message.id}] Failure while processing response #{exception}!" if @logger
 					RubyDNS.log_exception(@logger, response) if @logger
@@ -138,12 +140,17 @@ module RubyDNS
 			
 			private
 			
-			def try_next_server!
+			def finish_request!
+				cancel_timeout
+				
+				# Cancel an existing request if it is in flight:
 				if @request
 					@request.close_connection
 					@request = nil
 				end
-				
+			end
+			
+			def try_next_server!
 				if @servers.size > 0
 					@server = @servers.shift
 					
@@ -160,8 +167,10 @@ module RubyDNS
 					end
 					
 					# Setting up the timeout...
-					EventMachine::Timer.new(@timeout) do
+					timeout(@timeout) do
 						@logger.debug "[#{@message.id}] Request timed out!" if @logger
+						
+						finish_request!
 						
 						try_next_server!
 					end
@@ -190,7 +199,7 @@ module RubyDNS
 				def receive_data(data)
 					# Receiving response from remote DNS server...
 					message = RubyDNS::decode_message(data)
-						
+					
 					# The message id must match, and it can't be truncated:
 					@request.process_response!(message)
 				rescue Resolv::DNS::DecodeError => error
