@@ -160,7 +160,7 @@ module RubyDNS
 					end
 
 					# Setting up the timeout...
-					EventMachine::Timer.new(@timeout) do
+					timeout(@timeout) do
 						@logger.debug "[#{@message.id}] Request timed out!" if @logger
 
 						try_next_server!
@@ -190,6 +190,9 @@ module RubyDNS
 				def receive_data(data)
 					# Receiving response from remote DNS server...
 					message = RubyDNS::decode_message(data)
+
+					# Close connection from the remote server or we will run out of sockets
+					close_connection
 
 					# The message id must match, and it can't be truncated:
 					@request.process_response!(message)
