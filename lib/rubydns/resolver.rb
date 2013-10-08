@@ -130,7 +130,7 @@ module RubyDNS
 					
 					try_next_server!
 				else
-					@logger.warn "[#{@message.id}] Received valid response #{response.inspect}" if @logger
+					@logger.debug "[#{@message.id}] Received valid response #{response.inspect}" if @logger
 					
 					succeed response
 				end
