@@ -40,7 +40,8 @@ module RubyDNS
 
 		# Provides the next sequence identification number which is used to keep track of DNS messages.
 		def next_id!
-			return (@sequence += 1)
+			# Sequence IDs are 16-bit integers.
+			return (@sequence += 1) % (2**16)
 		end
 
 		# Look up a named resource of the given resource_class.
