@@ -22,6 +22,8 @@ require 'eventmachine'
 require 'stringio'
 require 'resolv'
 
+require 'base64'
+
 require 'rubydns/extensions/resolv'
 
 module RubyDNS
@@ -30,12 +32,32 @@ module RubyDNS
 	# The DNS message container.
 	Message = Resolv::DNS::Message
 
+	DecodeError = Resolv::DNS::DecodeError
+
+	@@dump_bad_message = nil
+	
+	# Call this function with a path where bad messages will be saved. Any message that causes an exception to be thrown while decoding the binary will be saved in base64 for later inspection. The log file could grow quickly so be careful - not designed for long term use.
+	def self.log_bad_messages!(log_path)
+		bad_messages_log = Logger.new(log_path, 10, 1024*100)
+		bad_messages_log.level = Logger::DEBUG
+		
+		@dump_bad_message = lambda do |error, data|
+			bad_messages_log.debug("Bad message: #{Base64.encode64(data)}")
+			RubyDNS.log_exception(bad_messages_log, error)
+		end
+	end
+
 	def self.decode_message(data)
 		if data.respond_to? :force_encoding
 			data.force_encoding("BINARY")
 		end
 		
-		# This may throw Resolv::DNS::DecodeError.
 		Message.decode(data)
+	rescue => error
+		if @dump_bad_message
+			@dump_bad_message.call(StandardError.new("foo"), data)
+		end
+		
+		raise
 	end
 end
