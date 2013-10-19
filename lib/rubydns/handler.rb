@@ -39,11 +39,11 @@ module RubyDNS
 				query = RubyDNS::decode_message(data)
 
 				return server.process_query(query, options, &block)
-			rescue
+			rescue => error
 				server.logger.error "Error processing request!"
-				server.logger.error "#{$!.class}: #{$!.message}"
+				server.logger.error "#{error.class}: #{error.message}"
 
-				$!.backtrace.each { |at| server.logger.error at }
+				error.backtrace.each { |at| server.logger.error at }
 
 				# Encoding may fail, so we need to handle this particular case:
 				server_failure = Resolv::DNS::Message::new(query ? query.id : 0)
