@@ -84,6 +84,8 @@ module RubyDNS
 				end
 				
 				request.errback do |error|
+					# In the case of a timeout, error will be nil, so we make one up.
+					
 					yield error
 				end
 				
@@ -167,15 +169,21 @@ module RubyDNS
 					end
 					
 					# Setting up the timeout...
-					timeout(@timeout) do
-						@logger.debug "[#{@message.id}] Request timed out!" if @logger
-						
-						finish_request!
-						
-						try_next_server!
-					end
+					timeout(@timeout)
 				else
 					fail ResolutionFailure.new("No available servers responded to the request.")
+				end
+			end
+			
+			def timeout seconds
+				cancel_timeout
+				
+				@deferred_timeout = EventMachine::Timer.new(seconds) do
+					@logger.debug "[#{@message.id}] Request timed out!" if @logger
+					
+					finish_request!
+					
+					try_next_server!
 				end
 			end
 			
