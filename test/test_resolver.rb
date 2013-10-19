@@ -36,7 +36,7 @@ class ResolverTest < Test::Unit::TestCase
 		
 		EventMachine::run do
 			resolver.query('foobar.oriontransfer.org') do |response|
-				assert_equal response.rcode, Resolv::DNS::RCode::NXDomain
+				assert_equal Resolv::DNS::RCode::NXDomain, response.rcode
 				EventMachine::stop
 			end
 		end

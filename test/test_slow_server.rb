@@ -41,7 +41,7 @@ class SlowServer < RExec::Daemon::Base
 				transaction.defer!
 			
 				# No domain exists, after 5 seconds:
-				EventMachine::Timer.new(2) do
+				EventMachine::Timer.new(5) do
 					transaction.failure!(:NXDomain)
 				end
 			end
@@ -60,6 +60,28 @@ class SlowServerTest < Test::Unit::TestCase
 	
 	def teardown
 		SlowServer.stop
+	end
+	
+	def test_timeout
+		start_time = Time.now
+		end_time = nil
+		got_response = false
+		
+		# Because there are two servers, the total timeout is actually, 2 seconds
+		resolver = RubyDNS::Resolver.new(SlowServer::SERVER_PORTS, :timeout => 1)
+		
+		EventMachine::run do
+			resolver.query("apple.com", IN::A) do |response|
+				end_time = Time.now
+				
+				got_response = response
+				
+				EventMachine::stop
+			end
+		end
+		
+		assert (end_time - start_time) <= 2.5, "Response should fail within timeout period."
+		assert_equal RubyDNS::ResolutionFailure, got_response.class, "Response should be resolution failure."
 	end
 	
 	def test_slow_request
