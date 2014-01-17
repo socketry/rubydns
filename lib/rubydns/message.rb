@@ -52,10 +52,18 @@ module RubyDNS
 			data.force_encoding("BINARY")
 		end
 		
-		Message.decode(data)
+    begin
+      Message.decode(data)
+    rescue Resolv::DNS::DecodeError
+      raise
+    rescue StandardError => error
+      new_error = Resolv::DNS::DecodeError.new(error.message)
+      new_error.set_backtrace(error.backtrace)
+      raise new_error
+    end
 	rescue => error
 		if @dump_bad_message
-			@dump_bad_message.call(StandardError.new("foo"), data)
+			@dump_bad_message.call(error, data)
 		end
 		
 		raise
