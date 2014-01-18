@@ -56,12 +56,16 @@ class TestPassthroughServer < RExec::Daemon::Base
 end
 
 class PassthroughTest < Test::Unit::TestCase
+	LOG_PATH = File.join(__dir__, "log/TestPassthroughServer.log")
+	
 	def setup
+		system("rm", LOG_PATH)
 		TestPassthroughServer.start
 	end
 	
 	def teardown
 		TestPassthroughServer.stop
+		system("cat", LOG_PATH)
 	end
 	
 	def test_basic_dns
