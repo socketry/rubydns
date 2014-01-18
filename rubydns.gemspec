@@ -29,7 +29,7 @@ Gem::Specification.new do |spec|
 
 	spec.required_ruby_version = '>= 1.9.3'
 
-	spec.add_dependency("rexec", "~> 1.5.1")
+	spec.add_dependency("rexec", "~> 1.6.2")
 	spec.add_dependency("eventmachine", "~> 1.0.0")
 
 	spec.has_rdoc = "yard"
