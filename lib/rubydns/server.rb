@@ -18,6 +18,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+require 'fiber'
+
 require 'rubydns/transaction'
 require 'rubydns/extensions/logger'
 
