@@ -33,6 +33,7 @@ module RubyDNS
 				@callback = callback
 			end
 			
+			# Returns true if the name and resource_class are sufficient:
 			def match(name, resource_class)
 				# If the pattern doesn't specify any resource classes, we implicitly pass this test:
 				return true if @pattern.size < 2
@@ -52,27 +53,38 @@ module RubyDNS
 					return false
 				end
 				
-				# Match succeeded against name?
+				# Does this rule match against the supplied name?
 				case @pattern[0]
 				when Regexp
 					match_data = @pattern[0].match(name)
+					
 					if match_data
 						server.logger.debug "Regexp pattern matched with #{match_data.inspect}."
-						return @callback[*args, match_data]
+						
+						@callback[*args, match_data]
+						
+						return true
 					end
 				when String
 					if @pattern[0] == name
 						server.logger.debug "String pattern matched."
-						return @callback[*args]
+						
+						@callback[*args]
+						
+						return true
 					end
 				else
 					if (@pattern[0].call(name, resource_class) rescue false)
 						server.logger.debug "Callable pattern matched."
-						return @callback[*args]
+						
+						@callback[*args]
+						
+						return true
 					end
 				end
 				
 				server.logger.debug "No pattern matched."
+				
 				# We failed to match the pattern.
 				return false
 			end
@@ -145,11 +157,13 @@ module RubyDNS
 		def otherwise(&block)
 			@otherwise = block
 		end
-
+		
+		# If you match a rule, but decide within the rule that it isn't the correct one to use, you can call
+		# `next!` to evaluate the next rule - in other words, to continue falling down through the list of rules.
 		def next!
 			throw :next
 		end
-
+		
 		# Give a name and a record type, try to match a rule and use it for
 		# processing the given arguments.
 		#
@@ -157,23 +171,32 @@ module RubyDNS
 		# futher matching is carried out.
 		def process(name, resource_class, *args)
 			@logger.debug "Searching for #{name} #{resource_class.name}"
-
+			
 			@rules.each do |rule|
 				@logger.debug "Checking rule #{rule}..."
-
+				
 				catch (:next) do
 					# If the rule returns true, we assume that it was successful and no further rules need to be evaluated.
-					return true if rule.call(self, name, resource_class, *args)
+					return if rule.call(self, name, resource_class, *args)
 				end
 			end
-
+			
 			if @otherwise
 				@otherwise.call(*args)
 			else
 				@logger.warn "Failed to handle #{name} #{resource_class.name}!"
 			end
 		end
-
+		
+		
+		def defer(&block)
+			fiber = Fiber.current
+			
+			yield(fiber)
+			
+			Fiber.yield
+		end
+		
 		# Process an incoming DNS message. Returns a serialized message to be
 		# sent back to the client.
 		def process_query(query, options = {}, &block)
@@ -185,57 +208,27 @@ module RubyDNS
 			answer.rd = query.rd          # Is Recursion Desired, copied from query
 			answer.ra = 0                 # Does name server support recursion: 0 = No, 1 = Yes
 			answer.rcode = 0              # Response code: 0 = No errors
-
-			# 1/ This chain contains a reverse list of question lambdas.
-			chain = []
-
-			# 4/ Finally, the answer is given back to the calling block:
-			chain << lambda do
-				@logger.debug "Passing answer back to caller..."
-				yield answer
-			end
-
-			# There may be multiple questions per query
-			query.question.reverse.each do |question, resource_class|
-				next_link = chain.last
-
-				chain << lambda do
-					@logger.debug "Processing question #{question} #{resource_class}..."
-
-					transaction = Transaction.new(self, query, question, resource_class, answer, options)
-					
-					# Call the next link in the chain:
-					transaction.callback do
-						# 3/ ... which calls the previous item in the chain, i.e. the next question to be answered:
-						next_link.call
-					end
-
-					# If there was an error, log it and fail:
-					transaction.errback do |response|
-						if Exception === response
-							@logger.error "Exception thrown while processing #{transaction}!"
-							RubyDNS.log_exception(@logger, response)
-						else
-							@logger.error "Failure while processing #{transaction}!"
-							@logger.error "#{response.inspect}"
-						end
-
-						answer.rcode = Resolv::DNS::RCode::ServFail
-
-						chain.first.call
-					end
-					
-					begin
-						# Transaction.process will call succeed if it wasn't deferred:
+			
+			Fiber.new do
+				transaction = nil
+				
+				begin
+					query.question.each do |question, resource_class|
+						@logger.debug "Processing question #{question} #{resource_class}..."
+				
+						transaction = Transaction.new(self, query, question, resource_class, answer, options)
+						
 						transaction.process
-					rescue
-						transaction.fail($!)
 					end
+				rescue
+					@logger.error "Exception thrown while processing #{transaction}!"
+					RubyDNS.log_exception(@logger, $!)
+				
+					answer.rcode = Resolv::DNS::RCode::ServFail
 				end
-			end
-
-			# 2/ We call the last lambda...
-			chain.last.call
+			
+				yield answer
+			end.resume
 		end
 	end
 end

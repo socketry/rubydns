@@ -68,7 +68,7 @@ class DaemonTest < Test::Unit::TestCase
 		assert_equal :running, RExec::Daemon::ProcessFile.status(BasicTestServer)
 		
 		EventMachine.run do
-			resolver = resolver = RubyDNS::Resolver.new(BasicTestServer::SERVER_PORTS)
+			resolver = RubyDNS::Resolver.new(BasicTestServer::SERVER_PORTS)
 		
 			resolver.query("test.local") do |response|
 				answer = response.answer.first
@@ -85,7 +85,7 @@ class DaemonTest < Test::Unit::TestCase
 		assert_equal :running, RExec::Daemon::ProcessFile.status(BasicTestServer)
 
 		EventMachine.run do
-			resolver = resolver = RubyDNS::Resolver.new(BasicTestServer::SERVER_PORTS)
+			resolver = RubyDNS::Resolver.new(BasicTestServer::SERVER_PORTS)
 
 			resolver.query("foobar") do |response|
 				answer = response.answer.first
