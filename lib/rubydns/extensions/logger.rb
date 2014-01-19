@@ -19,7 +19,7 @@
 # THE SOFTWARE.
 
 module RubyDNS
-	# Logs an exception nicely.
+	# Logs an exception nicely to a standard `Logger`.
 	def self.log_exception(logger, exception)
 		logger.error "#{exception.class}: #{exception.message}"
 		if exception.backtrace

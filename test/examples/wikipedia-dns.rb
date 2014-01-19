@@ -103,13 +103,13 @@ class WikipediaDNS < RExec::Daemon::Base
 				end
 				
 				http.errback do
-					transaction.failure!(:ServFail)
+					transaction.fail!(:ServFail)
 				end
 			end
 			
 			# Default DNS handler
 			otherwise do |transaction|
-				transaction.failure!(:NXDomain)
+				transaction.fail!(:NXDomain)
 			end
 		end
 	end

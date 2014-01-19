@@ -1,4 +1,5 @@
-# Copyright, 2012, by Samuel G. D. Williams. <http://www.codeotaku.com>
+
+# Copyright, 2009, 2012, by Samuel G. D. Williams. <http://www.codeotaku.com>
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,19 +21,13 @@
 
 require 'stringio'
 
-class String
-	def hexdump
-		i = 1
-		out = StringIO.new
+module RubyDNS
+	# A helper class for processing incoming network data.
+	class BinaryStringIO < StringIO
+		def initialize
+			super
 		
-		out.puts "Size: #{self.bytesize}"
-		while (self.length > 16*(i-1))
-			a = self.slice(16*(i-1)..(16*i)-1)
-			out.printf("%06x: %4.4x %4.4x %4.4x %4.4x   %4.4x %4.4x %4.4x %4.4x ", (i-1)*16,  *a.unpack("n16"))
-			out.printf("|%s|\n", a.tr("^\040-\176","."))
-			i += 1
+			set_encoding("BINARY")
 		end
-		
-		return out.string
 	end
 end

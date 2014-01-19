@@ -41,7 +41,7 @@ class SlowServer < RExec::Daemon::Base
 				defer do |fiber|
 					# No domain exists, after 2 seconds:
 					EventMachine::Timer.new(2) do
-						transaction.failure!(:NXDomain)
+						transaction.fail!(:NXDomain)
 					
 						fiber.resume
 					end
@@ -49,7 +49,7 @@ class SlowServer < RExec::Daemon::Base
 			end
 		
 			otherwise do |transaction|
-				transaction.failure!(:NXDomain)
+				transaction.fail!(:NXDomain)
 			end
 		end
 	end

@@ -79,7 +79,7 @@ class FortuneDNS < RExec::Daemon::Base
 				if fortune
 					transaction.respond!(*fortune.chunked)
 				else
-					transaction.failure!(:NXDomain)
+					transaction.fail!(:NXDomain)
 				end
 			end
 			
@@ -100,7 +100,7 @@ class FortuneDNS < RExec::Daemon::Base
 			
 			# Default DNS handler
 			otherwise do |transaction|
-				transaction.failure!(:NXDomain)
+				transaction.fail!(:NXDomain)
 			end
 		end
 	end

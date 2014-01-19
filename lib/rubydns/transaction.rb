@@ -27,8 +27,7 @@ module RubyDNS
 	
 	# This class provides all details of a single DNS question and answer. This is used by the DSL to provide DNS related functionality.
 	# 
-	# The main functions to complete the trasaction are {#passthrough!}, {#respond!} and {#failure!}.
-	# 
+	# The main functions to complete the trasaction are: {#append!} (evaluate a new query and append the results), {#passthrough!} (pass the query to an upstream server), {#respond!} (compute a specific response) and {#fail!} (fail with an error code).
 	class Transaction
 		# The default time used for responses (24 hours).
 		DEFAULT_TTL = 86400
@@ -73,7 +72,7 @@ module RubyDNS
 		end
 		
 		# Run a new query through the rules with the given name and resource type. The results of this query are appended to the current transaction's `answer`.
-		def append_query!(name, resource_class = nil, options = {})
+		def append!(name, resource_class = nil, options = {})
 			Transaction.new(@server, @query, name, resource_class || @resource_class, @answer, options).process
 		end
 		
@@ -81,9 +80,9 @@ module RubyDNS
 		#
 		# If a block is supplied, this function yields with the `reply` and `reply_name` if successful. This could be used, for example, to update a cache or modify the reply.
 		#
-		# If recursion is not requested, the result is `failure!(:Refused)`. This check is ignored if an explicit `options[:name]` or `options[:force]` is given.
+		# If recursion is not requested, the result is `fail!(:Refused)`. This check is ignored if an explicit `options[:name]` or `options[:force]` is given.
 		#
-		# If the resolver does not respond, the result is `failure!(:NXDomain)`.
+		# If the resolver does not respond, the result is `fail!(:NXDomain)`.
 		def passthrough!(resolver, options = {}, &block)
 			if @query.rd || options[:force] || options[:name]
 				passthrough(resolver, options) do |response|
@@ -118,7 +117,7 @@ module RubyDNS
 			when RubyDNS::Message
 				yield response
 			when RubyDNS::ResolutionFailure
-				failure!(:ServFail)
+				fail!(:ServFail)
 			else
 				throw PassthroughError.new("Bad response from query: #{response.inspect}")
 			end
@@ -145,7 +144,7 @@ module RubyDNS
 			resource = resource_class.new(*args)
 			@server.logger.info "Resource: #{resource.inspect}"
 			
-			append([resource], options)
+			add([resource], options)
 		end
 		
 		# Append a list of resources.
@@ -153,7 +152,7 @@ module RubyDNS
 		# By default resources are appended to the `answers` section, but this can be changed by setting `options[:section]` to either `:authority` or `:additional`.
 		#
 		# The time-to-live (TTL) of the resources can be specified using `options[:ttl]` and defaults to `DEFAULT_TTL`.
-		def append(resources, options = {})
+		def add(resources, options = {})
 			# Use the default options if provided:
 			options = options.merge(@options)
 			
@@ -185,7 +184,7 @@ module RubyDNS
 		# See [RFC2929](http://www.rfc-editor.org/rfc/rfc2929.txt) for more information about DNS error codes (specifically, page 3).
 		#
 		# **This function will complete deferred transactions.**
-		def failure!(rcode)
+		def fail!(rcode)
 			append_question!
 			
 			if rcode.kind_of? Symbol
@@ -193,6 +192,13 @@ module RubyDNS
 			else
 				@answer.rcode = rcode.to_i
 			end
+		end
+		
+		# @deprecated
+		def failure!(*args)
+			@server.logger.warn "failure! is deprecated, use fail! instead"
+			
+			fail!(*args)
 		end
 		
 		# A helper method to process the transaction on the given server. Unless the transaction is deferred, it will {#succeed} on completion.

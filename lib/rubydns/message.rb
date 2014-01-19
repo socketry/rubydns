@@ -46,22 +46,27 @@ module RubyDNS
 			RubyDNS.log_exception(bad_messages_log, error)
 		end
 	end
-
+	
+	# Decodes binary data into a {Message}.
 	def self.decode_message(data)
+		# Otherwise the decode process might fail with non-binary data.
 		if data.respond_to? :force_encoding
 			data.force_encoding("BINARY")
 		end
 		
-    begin
-      Message.decode(data)
-    rescue Resolv::DNS::DecodeError
-      raise
-    rescue StandardError => error
-      new_error = Resolv::DNS::DecodeError.new(error.message)
-      new_error.set_backtrace(error.backtrace)
-      raise new_error
-    end
+		begin
+			return Message.decode(data)
+		rescue DecodeError
+			raise
+		rescue StandardError => error
+			new_error = DecodeError.new(error.message)
+			new_error.set_backtrace(error.backtrace)
+			
+			raise new_error
+		end
+		
 	rescue => error
+		# Log the bad messsage if required:
 		if @dump_bad_message
 			@dump_bad_message.call(error, data)
 		end

@@ -23,11 +23,7 @@ require 'resolv'
 class Resolv
 	class DNS
 		class Message
-			# Merge the given message with this message. A number of heuristics are
-			# applied in order to ensure that the result makes sense. For example,
-			# If the current message is not recursive but is being merged with a
-			# message that was recursive, this bit is maintained. If either message
-			# is authoritive, then the result is also authoritive.
+			# Merge the given message with this message. A number of heuristics are applied in order to ensure that the result makes sense. For example, If the current message is not recursive but is being merged with a message that was recursive, this bit is maintained. If either message is authoritive, then the result is also authoritive.
 			#
 			# Modifies the current message in place.
 			def merge! (other)
