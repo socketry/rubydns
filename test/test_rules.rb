@@ -39,7 +39,7 @@ class RulesTest < Test::Unit::TestCase
 	end
 	
 	def test_string_pattern
-		rule = RubyDNS::Server::Rule.new(["foobar", IN::A], @true_callback)
+		rule = RubyDNS::RuleBasedServer::Rule.new(["foobar", IN::A], @true_callback)
 		
 		assert rule.call(@server, "foobar", IN::A)
 		assert !rule.call(@server, "barfoo", IN::A)
@@ -47,7 +47,7 @@ class RulesTest < Test::Unit::TestCase
 	end
 	
 	def test_regexp_pattern
-		rule = RubyDNS::Server::Rule.new([/foo/, IN::A], @true_callback)
+		rule = RubyDNS::RuleBasedServer::Rule.new([/foo/, IN::A], @true_callback)
 		
 		assert rule.call(@server, "foobar", IN::A)
 		assert !rule.call(@server, "barbaz", IN::A)
@@ -64,7 +64,7 @@ class RulesTest < Test::Unit::TestCase
 			name.size == 6
 		end
 		
-		rule = RubyDNS::Server::Rule.new([callback], @true_callback)
+		rule = RubyDNS::RuleBasedServer::Rule.new([callback], @true_callback)
 		
 		assert rule.call(@server, "foobar", IN::A)
 		assert !rule.call(@server, "foobarbaz", IN::A)

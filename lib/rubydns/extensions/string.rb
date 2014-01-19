@@ -21,6 +21,7 @@
 require 'rubydns/chunked'
 
 class String
+	# Chunk a string which is required for the TEXT `resource_class`.
 	def chunked(chunk_size = 255)
 		RubyDNS::chunked(self)
 	end

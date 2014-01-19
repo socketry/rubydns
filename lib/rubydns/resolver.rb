@@ -19,6 +19,7 @@
 # THE SOFTWARE.
 
 require 'rubydns/message'
+require 'rubydns/binary_string'
 
 module RubyDNS
 	class InvalidProtocolError < StandardError
@@ -117,6 +118,7 @@ module RubyDNS
 				try_next_server!
 			end
 			
+			# Once either an exception or message is received, we update the status of this request.
 			def process_response!(response)
 				finish_request!
 				
@@ -142,6 +144,7 @@ module RubyDNS
 			
 			private
 			
+			# Closes any connections and cancels any timeout.
 			def finish_request!
 				cancel_timeout
 				

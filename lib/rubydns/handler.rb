@@ -19,18 +19,21 @@
 # THE SOFTWARE.
 
 require 'rubydns/message'
+require 'rubydns/binary_string'
 
 module RubyDNS
-	
+	# @returns the [port, ip address] of the given connection.
 	def self.get_peer_details(connection)
 		Socket.unpack_sockaddr_in(connection.get_peername)
 	end
 	
+	# Handling incoming UDP requests, which are single data packets, and pass them on to the given server.
 	module UDPHandler
 		def initialize(server)
 			@server = server
 		end
-
+		
+		# Process a packet of data with the given server. If an exception is thrown, a failure message will be sent back.
 		def self.process(server, data, options = {}, &block)
 			server.logger.debug "Receiving incoming query (#{data.bytesize} bytes)..."
 			query = nil
@@ -98,6 +101,7 @@ module RubyDNS
 			@processed = 0
 		end
 		
+		# Receive the data via a TCP connection, process messages when we receive the indicated amount of data.
 		def receive_data(data)
 			# We buffer data until we've received the entire packet:
 			@buffer.write(data)
@@ -132,6 +136,7 @@ module RubyDNS
 			end
 		end
 		
+		# Check that all data received was processed.
 		def unbind
 			if @processed != @buffer.size
 				raise LengthError.new("Unprocessed data remaining (#{@buffer.size - @processed} bytes unprocessed)")

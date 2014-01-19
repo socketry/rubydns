@@ -49,7 +49,7 @@ class TestPassthroughServer < RExec::Daemon::Base
 
 			# Default DNS handler
 			otherwise do |transaction|
-				transaction.failure!(:NXDomain)
+				transaction.fail!(:NXDomain)
 			end
 		end
 	end

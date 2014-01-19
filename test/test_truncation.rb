@@ -45,7 +45,7 @@ class TruncatedServer < RExec::Daemon::Base
 			
 			# Default DNS handler
 			otherwise do |transaction|
-				transaction.failure!(:NXDomain)
+				transaction.fail!(:NXDomain)
 			end
 		end
 	end
@@ -65,8 +65,6 @@ class TruncationTest < Test::Unit::TestCase
 		
 		EventMachine::run do
 			resolver.query("truncation", IN::TXT) do |response|
-				
-				
 				text = response.answer.first
 				
 				assert_equal "Hello World! " * 100, text[2].strings.join

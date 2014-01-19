@@ -77,6 +77,6 @@ RubyDNS::run_server(:listen => [[:udp, "0.0.0.0", 5400]]) do
 	# Default DNS handler
 	otherwise do |transaction|
 		# Non-Existant Domain
-		transaction.failure!(:NXDomain)
+		transaction.fail!(:NXDomain)
 	end
 end

@@ -50,7 +50,7 @@ class DroppingDaemon < RExec::Daemon::Base
 			match(/(m?i?c?r?o?s?o?f?t)/) do |transaction, match_data|
 				if match_data[1].size > 7
 					logger.info "Dropping domain MICROSOFT..."
-					transaction.failure!(:NXDomain)
+					transaction.fail!(:NXDomain)
 				else
 					# Pass the request to the otherwise handler
 					false
@@ -60,7 +60,7 @@ class DroppingDaemon < RExec::Daemon::Base
 			# Hmm....
 			match(/^(.+\.)?sco\./) do |transaction|
 				logger.info "Dropping domain SCO..."
-				transaction.failure!(:NXDomain)
+				transaction.fail!(:NXDomain)
 			end
 
 			# Default DNS handler
