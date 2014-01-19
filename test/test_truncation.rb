@@ -36,6 +36,8 @@ class TruncatedServer < RExec::Daemon::Base
 	IN = Resolv::DNS::Resource::IN
 
 	def self.run
+		# RubyDNS::log_bad_messages!("bad.log")
+		
 		# Start the RubyDNS server
 		RubyDNS::run_server(:listen => SERVER_PORTS) do
 			match("truncation", IN::TXT) do |transaction|
