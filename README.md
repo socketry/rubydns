@@ -63,6 +63,22 @@ Start the server using `rvmsudo ./test.rb`. You can then test it using dig:
 	$ dig @localhost dev.mydomain.org
 	$ dig @localhost google.com
 
+### Custom servers
+
+It is possible to create and integrate your own custom servers.
+
+	class MyServer < RubyDNS::Server
+		def process(name, resource_class, transaction)
+			transaction.fail!(:NXDomain)
+		end
+	end
+	
+	EventMachine.run do
+		MyServer.new.run
+	end
+
+This is the best way to integrate with other projects.
+
 ## Compatibility
 
 ### Migrating from RubyDNS 0.6.x to 0.7.x
