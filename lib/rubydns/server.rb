@@ -293,38 +293,5 @@ module RubyDNS
 			
 			Fiber.yield
 		end
-		
-		# Process an incoming DNS message. Returns a serialized message to be sent back to the client.
-		def process_query(query, options = {}, &block)
-			# Setup answer
-			answer = Resolv::DNS::Message::new(query.id)
-			answer.qr = 1                 # 0 = Query, 1 = Response
-			answer.opcode = query.opcode  # Type of Query; copy from query
-			answer.aa = 1                 # Is this an authoritative response: 0 = No, 1 = Yes
-			answer.rd = query.rd          # Is Recursion Desired, copied from query
-			answer.ra = 0                 # Does name server support recursion: 0 = No, 1 = Yes
-			answer.rcode = 0              # Response code: 0 = No errors
-			
-			Fiber.new do
-				transaction = nil
-				
-				begin
-					query.question.each do |question, resource_class|
-						@logger.debug "Processing question #{question} #{resource_class}..."
-				
-						transaction = Transaction.new(self, query, question, resource_class, answer, options)
-						
-						transaction.process
-					end
-				rescue
-					@logger.error "Exception thrown while processing #{transaction}!"
-					RubyDNS.log_exception(@logger, $!)
-				
-					answer.rcode = Resolv::DNS::RCode::ServFail
-				end
-			
-				yield answer
-			end.resume
-		end
 	end
 end
