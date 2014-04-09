@@ -123,7 +123,7 @@ module RubyDNS
 				finish_request!
 				
 				if Exception === response
-					@logger.warn "[#{@message.id}] Failure while processing response #{exception}!" if @logger
+					@logger.warn "[#{@message.id}] Failure while processing response #{response}!" if @logger
 					RubyDNS.log_exception(@logger, response) if @logger
 					
 					try_next_server!
