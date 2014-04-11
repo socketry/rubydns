@@ -89,7 +89,11 @@ module RubyDNS
 					if block_given?
 						yield response
 					end
-				
+					
+					# Recursion is available and is being used:
+					# See issue #26 for more details.
+					@answer.ra = 1
+					
 					@answer.merge!(response)
 				end
 			else
