@@ -69,7 +69,7 @@ class PassthroughTest < Test::Unit::TestCase
 	end
 	
 	def test_basic_dns
-		answer = nil
+		answer = nil, response = nil
 		
 		assert_equal :running, RExec::Daemon::ProcessFile.status(TestPassthroughServer)
 		
@@ -77,14 +77,18 @@ class PassthroughTest < Test::Unit::TestCase
 			resolver = RubyDNS::Resolver.new(TestPassthroughServer::SERVER_PORTS)
 		
 			resolver.query("google.com") do |response|
+				assert_equal 1, response.ra
+				
 				answer = response.answer.first
 				
 				EventMachine.stop
 			end
 		end
 		
-		assert answer != nil
+		# Check whether we got some useful records in the answer:
+		assert_not_nil answer
 		assert answer.count > 0
+		assert answer.any? {|record| record.kind_of? Resolv::DNS::Resource::IN::A }
 	end
 	
 	def test_basic_dns_prefix
