@@ -1,12 +1,12 @@
 # RubyDNS
 
-RubyDNS is a high-performance DNS server which can be easily integrated into other projects or used as a stand-alone daemon (via RExec). By default it uses rule-based pattern matching. Results can be hard-coded, computed, fetched from a remote DNS server or fetched from a local cache, depending on requirements.
+RubyDNS is a high-performance DNS server which can be easily integrated into other projects or used as a stand-alone daemon. By default it uses rule-based pattern matching. Results can be hard-coded, computed, fetched from a remote DNS server or fetched from a local cache, depending on requirements.
 
 In addition, RubyDNS includes a high-performance asynchronous DNS resolver built on top of EventMachine. This module can be used by itself in client applications without using the full RubyDNS server stack.
 
 For examples and documentation please see the main [project page][1].
 
-[1]: http://www.oriontransfer.co.nz/gems/rubydns
+[1]: http://www.codeotaku.com/projects/rubydns/
 
 [![Build Status](https://travis-ci.org/ioquatix/rubydns.svg)](https://travis-ci.org/ioquatix/rubydns)
 [![Code Climate](https://codeclimate.com/github/ioquatix/rubydns.png)](https://codeclimate.com/github/ioquatix/rubydns)
@@ -42,7 +42,7 @@ This is copied from `test/examples/test-dns-2.rb`. It has been simplified slight
 	# Use upstream DNS for name resolution.
 	UPSTREAM = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
 
-	def self.run
+	def startup
 	    # Start the RubyDNS server
 	    RubyDNS::run_server(:listen => INTERFACES) do
 	        match(/test.mydomain.org/, IN::A) do |transaction|
@@ -80,6 +80,10 @@ It is possible to create and integrate your own custom servers.
 This is the best way to integrate with other projects.
 
 ## Compatibility
+
+### Migrating from RubyDNS 0.7.x to 0.8.x
+
+The primary change is the removal of the dependency on `RExec` which was used for daemons and the addition of the testing dependency `process-daemon`. In order to create and run your own daemon, you may use `process-daemon` or another tool of your choice.
 
 ### Migrating from RubyDNS 0.6.x to 0.7.x
 

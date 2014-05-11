@@ -20,21 +20,23 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'helper'
-require 'pathname'
+require 'minitest/autorun'
 
 require 'rubydns'
-require 'rubydns/resolver'
 
-require 'rexec'
-require 'rexec/daemon'
+require 'process/daemon'
 
-class TestPassthroughServer < RExec::Daemon::Base
+class PassthroughServer < Process::Daemon
 	SERVER_PORTS = [[:udp, '127.0.0.1', 5340], [:tcp, '127.0.0.1', 5340]]
 	
-	@@base_directory = File.dirname(__FILE__)
-
-	def self.run
+	def working_directory
+		File.join(__dir__, "tmp")
+	end
+	
+	Name = Resolv::DNS::Name
+	IN = Resolv::DNS::Resource::IN
+	
+	def startup
 		resolver = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
 		
 		# Start the RubyDNS server
@@ -55,28 +57,26 @@ class TestPassthroughServer < RExec::Daemon::Base
 	end
 end
 
-class PassthroughTest < Test::Unit::TestCase
-	# LOG_PATH = File.join(__dir__, "log/TestPassthroughServer.log")
-	
+class PassthroughTest < MiniTest::Test
 	def setup
-		# system("rm", LOG_PATH)
-		TestPassthroughServer.start
+		PassthroughServer.start
 	end
 	
 	def teardown
-		TestPassthroughServer.stop
-		# system("cat", LOG_PATH)
+		PassthroughServer.stop
 	end
 	
 	def test_basic_dns
 		answer = nil, response = nil
 		
-		assert_equal :running, RExec::Daemon::ProcessFile.status(TestPassthroughServer)
+		assert_equal :running, PassthroughServer.status
 		
 		EventMachine.run do
-			resolver = RubyDNS::Resolver.new(TestPassthroughServer::SERVER_PORTS)
+			resolver = RubyDNS::Resolver.new(PassthroughServer::SERVER_PORTS)
 		
 			resolver.query("google.com") do |response|
+				refute_kind_of RubyDNS::ResolutionFailure, response
+				
 				assert_equal 1, response.ra
 				
 				answer = response.answer.first
@@ -86,7 +86,7 @@ class PassthroughTest < Test::Unit::TestCase
 		end
 		
 		# Check whether we got some useful records in the answer:
-		assert_not_nil answer
+		refute_nil answer
 		assert answer.count > 0
 		assert answer.any? {|record| record.kind_of? Resolv::DNS::Resource::IN::A }
 	end
@@ -94,12 +94,14 @@ class PassthroughTest < Test::Unit::TestCase
 	def test_basic_dns_prefix
 		answer = nil
 		
-		assert_equal :running, RExec::Daemon::ProcessFile.status(TestPassthroughServer)
+		assert_equal :running, PassthroughServer.status
 		
 		EventMachine.run do
-			resolver = RubyDNS::Resolver.new(TestPassthroughServer::SERVER_PORTS)
+			resolver = RubyDNS::Resolver.new(PassthroughServer::SERVER_PORTS)
 		
 			resolver.query("a-slashdot.org") do |response|
+				refute_kind_of RubyDNS::ResolutionFailure, response
+				
 				answer = response.answer.first
 				
 				EventMachine.stop

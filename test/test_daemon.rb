@@ -20,21 +20,20 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'helper'
-require 'pathname'
+require 'minitest/autorun'
 
 require 'rubydns'
-require 'rubydns/resolver'
 
-require 'rexec'
-require 'rexec/daemon'
+require 'process/daemon'
 
-class BasicTestServer < RExec::Daemon::Base
+class BasicTestServer < Process::Daemon
 	SERVER_PORTS = [[:udp, '127.0.0.1', 5350], [:tcp, '127.0.0.1', 5350]]
 
 	@@base_directory = File.dirname(__FILE__)
 
-	def self.run
+	IN = Resolv::DNS::Resource::IN
+
+	def startup
 		# Start the RubyDNS server
 		RubyDNS::run_server(:listen => SERVER_PORTS) do
 			match("test.local", IN::A) do |transaction|
@@ -53,19 +52,17 @@ class BasicTestServer < RExec::Daemon::Base
 	end
 end
 
-class DaemonTest < Test::Unit::TestCase
+class DaemonTest < MiniTest::Test
 	def setup
-		$stderr.puts "Starting test server..."
 		BasicTestServer.start
 	end
 	
 	def teardown
-		$stderr.puts "Stoping test server..."
 		BasicTestServer.stop
 	end
 	
 	def test_basic_dns
-		assert_equal :running, RExec::Daemon::ProcessFile.status(BasicTestServer)
+		assert_equal :running, BasicTestServer.status
 		
 		EventMachine.run do
 			resolver = RubyDNS::Resolver.new(BasicTestServer::SERVER_PORTS)
@@ -82,7 +79,7 @@ class DaemonTest < Test::Unit::TestCase
 	end
 	
 	def test_pattern_matching
-		assert_equal :running, RExec::Daemon::ProcessFile.status(BasicTestServer)
+		assert_equal :running, BasicTestServer.status
 
 		EventMachine.run do
 			resolver = RubyDNS::Resolver.new(BasicTestServer::SERVER_PORTS)

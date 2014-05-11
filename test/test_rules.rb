@@ -20,14 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'helper'
-require 'pathname'
+require 'minitest/autorun'
 
 require 'rubydns'
-require 'rubydns/resolver'
-require 'rubydns/extensions/string'
 
-class RulesTest < Test::Unit::TestCase
+class RulesTest < MiniTest::Test
 	IN = Resolv::DNS::Resource::IN
 	
 	def setup

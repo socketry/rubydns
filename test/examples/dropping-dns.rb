@@ -35,7 +35,7 @@ INTERFACES = [
 	[:udp, "0.0.0.0", 5300]
 ]
 
-class DroppingDaemon < RExec::Daemon::Base
+class DroppingDaemon < Process::Daemon
 	# You can specify a specific directory to use for run-time information (pid, logs, etc):
 	# @@base_directory = File.expand_path("../", __FILE__)
 	# @@base_directory = "/var"
@@ -44,7 +44,7 @@ class DroppingDaemon < RExec::Daemon::Base
 	IN = Resolv::DNS::Resource::IN
 	R = RubyDNS::Resolver.new(RubyDNS::System::nameservers)
 	
-	def self.run
+	def startup
 		RubyDNS::run_server(:listen => INTERFACES) do
 			# Fail the resolution of certain domains ;)
 			match(/(m?i?c?r?o?s?o?f?t)/) do |transaction, match_data|

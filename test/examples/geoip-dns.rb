@@ -40,7 +40,7 @@ INTERFACES = [
 # This daemon requires the file downloaded from http://geolite.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz
 # For more information, please see http://www.maxmind.com/en/geolite and http://geoip.rubyforge.org
 
-class GeoIPDNSDaemon < RExec::Daemon::Base
+class GeoIPDNSDaemon < Process::Daemon
 	# You can specify a specific directory to use for run-time information (pid, logs, etc):
 	# @@base_directory = File.expand_path("../", __FILE__)
 	# @@base_directory = "/var"
@@ -50,7 +50,7 @@ class GeoIPDNSDaemon < RExec::Daemon::Base
 	R = RubyDNS::Resolver.new(RubyDNS::System::nameservers)
 	GEO = GeoIP.new(File.expand_path('../GeoLiteCountry.dat', __FILE__))
 	
-	def self.run
+	def startup
 		RubyDNS::run_server(:listen => INTERFACES) do
 			match(//, IN::A) do |transaction|
 				location = nil
