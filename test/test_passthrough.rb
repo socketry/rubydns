@@ -72,8 +72,12 @@ class PassthroughTest < MiniTest::Test
 		assert_equal :running, PassthroughServer.status
 		
 		EventMachine.run do
-			resolver = RubyDNS::Resolver.new(PassthroughServer::SERVER_PORTS)
-		
+			resolver = RubyDNS::Resolver.new(
+				PassthroughServer::SERVER_PORTS, 
+				# Enable this to get more debug output from the resolver:
+				# :logger => Logger.new($stderr)
+			)
+			
 			resolver.query("google.com") do |response|
 				refute_kind_of RubyDNS::ResolutionFailure, response
 				
