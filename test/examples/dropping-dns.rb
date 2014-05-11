@@ -20,15 +20,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'rubygems'
+require 'process/daemon'
 
-require 'rexec'
-require 'rexec/daemon'
-
-require 'rubygems'
 require 'rubydns'
-
-require 'rubydns/resolver'
 require 'rubydns/system'
 
 INTERFACES = [

@@ -25,8 +25,6 @@ require 'minitest/autorun'
 require 'rubydns'
 require 'rubydns/system'
 
-require 'rexec'
-
 class SystemTest < MiniTest::Test
 	def test_system_nameservers
 		# There technically should be at least one nameserver:

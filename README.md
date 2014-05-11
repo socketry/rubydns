@@ -184,6 +184,7 @@ becomes
 
 * Support for more features of DNS such as zone transfer.
 * Support reverse records more easily.
+* Some kind of system level integration, e.g. registering a DNS server with the currently running system resolver.
 
 ## License
 

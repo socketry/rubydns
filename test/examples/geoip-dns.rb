@@ -20,17 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'rubygems'
-
 require 'geoip'
 
-require 'rexec'
-require 'rexec/daemon'
+require 'process-daemon'
 
-require 'rubygems'
 require 'rubydns'
-
-require 'rubydns/resolver'
 require 'rubydns/system'
 
 INTERFACES = [

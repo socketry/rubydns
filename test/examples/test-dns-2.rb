@@ -20,10 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'rubygems'
-require 'rexec'
-require 'rexec/daemon'
 require 'rubydns'
+require 'process-daemon'
 
 # To run this command, use the standard daemon syntax as root
 # ./daemon2.rb start

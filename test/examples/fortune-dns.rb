@@ -23,8 +23,7 @@
 
 require 'rubygems'
 
-require 'rexec'
-require 'rexec/daemon'
+require 'process/daemon'
 
 require 'rubygems'
 
