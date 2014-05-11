@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'rubydns/chunked'
+require_relative '../chunked'
 
 class String
 	# Chunk a string which is required for the TEXT `resource_class`.

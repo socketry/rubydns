@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
 	spec.email         = ["samuel.williams@oriontransfer.co.nz"]
 	spec.description   = <<-EOF
 		RubyDNS is a high-performance DNS server which can be easily integrated into
-		other projects or used as a stand-alone daemon (via RExec). By default it uses
+		other projects or used as a stand-alone daemon. By default it uses
 		rule-based pattern matching. Results can be hard-coded, computed, fetched from
 		a remote DNS server or fetched from a local cache, depending on requirements.
 
@@ -29,7 +29,6 @@ Gem::Specification.new do |spec|
 
 	spec.required_ruby_version = '>= 1.9.3'
 
-	spec.add_dependency("rexec", "~> 1.6.2")
 	spec.add_dependency("eventmachine", "~> 1.0.0")
 
 	spec.has_rdoc = "yard"

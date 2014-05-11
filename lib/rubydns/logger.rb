@@ -18,6 +18,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+require 'logger'
+
 module RubyDNS
 	# Logs an exception nicely to a standard `Logger`.
 	def self.log_exception(logger, exception)
@@ -25,6 +27,5 @@ module RubyDNS
 		if exception.backtrace
 			Array(exception.backtrace).each { |at| logger.error at }
 		end
-		
 	end
 end
