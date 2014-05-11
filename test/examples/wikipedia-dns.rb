@@ -21,15 +21,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'rubygems'
-
-require 'rexec'
-require 'rexec/daemon'
-
-require 'rubygems'
-
 require 'rubydns'
 require 'rubydns/extensions/string'
+
+require 'process/daemon'
 
 require 'em-http'
 require 'cgi'

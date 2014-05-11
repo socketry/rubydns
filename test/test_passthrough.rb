@@ -92,7 +92,7 @@ class PassthroughTest < MiniTest::Test
 		# Check whether we got some useful records in the answer:
 		refute_nil answer
 		assert answer.count > 0
-		assert answer.any? {|record| record.kind_of? Resolv::DNS::Resource::IN::A }
+		assert answer.any? {|record| record.kind_of? Resolv::DNS::Resource::IN::A}
 	end
 	
 	def test_basic_dns_prefix

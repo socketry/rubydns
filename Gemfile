@@ -5,5 +5,4 @@ gemspec
 
 group :test do
 	gem "minitest"
-	gem "process-daemon"
 end
