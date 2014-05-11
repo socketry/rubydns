@@ -20,10 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'helper'
+require 'minitest/autorun'
+
 require 'rubydns'
 
-class ResolverTest < Test::Unit::TestCase
+class ResolverTest < MiniTest::Test
 	def test_basic_resolver
 		resolver = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
 		

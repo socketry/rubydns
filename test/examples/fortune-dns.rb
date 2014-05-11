@@ -43,13 +43,13 @@ end
 
 # To use, start the daemon and try:
 # dig @localhost fortune CNAME
-class FortuneDNS < RExec::Daemon::Base
+class FortuneDNS < Process::Daemon
 	@@base_directory = File.dirname(__FILE__)
 
 	Name = Resolv::DNS::Name
 	IN = Resolv::DNS::Resource::IN
 
-	def self.run
+	def startup
 		# Don't buffer output (for debug purposes)
 		$stderr.sync = true
 		

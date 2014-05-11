@@ -51,14 +51,14 @@ if RExec.current_user != "root"
 end
 
 # The Daemon itself
-class Server < RExec::Daemon::Base
+class Server < Process::Daemon
 	Name = Resolv::DNS::Name
 	IN = Resolv::DNS::Resource::IN
 
 	# Use upstream DNS for name resolution.
 	UPSTREAM = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
 
-	def self.run
+	def startup
 		# Don't buffer output (for debug purposes)
 		$stderr.sync = true
 		

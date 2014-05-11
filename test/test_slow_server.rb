@@ -20,22 +20,24 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'helper'
-require 'pathname'
+require 'minitest/autorun'
 
 require 'rubydns'
-require 'rubydns/resolver'
-require 'rubydns/extensions/string'
 
-class SlowServer < RExec::Daemon::Base
+require 'process/daemon'
+
+class SlowServer < Process::Daemon
 	SERVER_PORTS = [[:udp, '127.0.0.1', 5330], [:tcp, '127.0.0.1', 5330]]
 	
 	@@base_directory = File.dirname(__FILE__)
 
-	Name = Resolv::DNS::Name
+	def working_directory
+		File.join(__dir__, "tmp")
+	end
+	
 	IN = Resolv::DNS::Resource::IN
-
-	def self.run
+	
+	def startup
 		RubyDNS::run_server(:listen => SERVER_PORTS) do
 			match(/\.*.com/, IN::A) do |transaction|
 				defer do |fiber|
@@ -55,7 +57,7 @@ class SlowServer < RExec::Daemon::Base
 	end
 end
 
-class SlowServerTest < Test::Unit::TestCase
+class SlowServerTest < MiniTest::Test
 	def setup
 		SlowServer.start
 	end
@@ -63,6 +65,8 @@ class SlowServerTest < Test::Unit::TestCase
 	def teardown
 		SlowServer.stop
 	end
+	
+	IN = Resolv::DNS::Resource::IN
 	
 	def test_timeout
 		start_time = Time.now
@@ -82,7 +86,7 @@ class SlowServerTest < Test::Unit::TestCase
 			end
 		end
 		
-		assert (end_time - start_time) <= 2.5, "Response should fail within timeout period."
+		assert_operator end_time - start_time, :<=, 2.5, "Response should fail within timeout period."
 		assert_equal RubyDNS::ResolutionFailure, got_response.class, "Response should be resolution failure."
 	end
 	
@@ -100,7 +104,7 @@ class SlowServerTest < Test::Unit::TestCase
 			end
 		end
 		
-		assert (end_time - start_time) > 2.0
+		assert_operator end_time - start_time, :>, 2.0, "Response should fail within timeout period."
 	end
 	
 	def test_normal_request
@@ -117,6 +121,6 @@ class SlowServerTest < Test::Unit::TestCase
 			end
 		end
 		
-		assert (end_time - start_time) < 2.0
+		assert_operator end_time - start_time, :<, 2.0, "Response should fail immediately"
 	end
 end

@@ -20,15 +20,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'helper'
-require 'pathname'
+require 'minitest/autorun'
 
 require 'rubydns'
 require 'rubydns/system'
 
 require 'rexec'
 
-class SystemTest < Test::Unit::TestCase
+class SystemTest < MiniTest::Test
 	def test_system_nameservers
 		# There technically should be at least one nameserver:
 		resolver = RubyDNS::Resolver.new(RubyDNS::System::nameservers)
