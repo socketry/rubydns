@@ -18,8 +18,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'rubydns/message'
-require 'rubydns/binary_string'
+require_relative 'message'
+require_relative 'binary_string'
 
 module RubyDNS
 	# @returns the [port, ip address] of the given connection.

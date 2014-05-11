@@ -20,8 +20,8 @@
 
 require 'fiber'
 
-require 'rubydns/transaction'
-require 'rubydns/extensions/logger'
+require_relative 'transaction'
+require_relative 'logger'
 
 module RubyDNS
 	
@@ -235,7 +235,7 @@ module RubyDNS
 		# Register a named event which may be invoked later using #fire
 		#
 		#	on(:start) do |server|
-		#		RExec.change_user(RUN_AS)
+		#		Process::Daemon::Permissions.change_user(RUN_AS)
 		#	end
 		def on(event_name, &block)
 			@events[event_name] = block

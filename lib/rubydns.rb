@@ -18,22 +18,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'rubydns/version'
+require_relative 'rubydns/version'
 
-require 'rubydns/message'
-require 'rubydns/server'
-require 'rubydns/resolver'
-require 'rubydns/handler'
-
-require 'logger'
-
-require 'rexec'
-require 'rexec/daemon'
-
-require 'rubydns/handler'
+require_relative 'rubydns/message'
+require_relative 'rubydns/server'
+require_relative 'rubydns/resolver'
+require_relative 'rubydns/handler'
 
 module RubyDNS
-	
 	# Run a server with the given rules.
 	def self.run_server (options = {}, &block)
 		server = RubyDNS::RuleBasedServer.new(&block)
@@ -44,6 +36,4 @@ module RubyDNS
 		
 		server.fire(:stop)
 	end
-	
-	
 end

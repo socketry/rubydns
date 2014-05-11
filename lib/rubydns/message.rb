@@ -24,7 +24,8 @@ require 'resolv'
 
 require 'base64'
 
-require 'rubydns/extensions/resolv'
+require_relative 'logger'
+require_relative 'extensions/resolv'
 
 module RubyDNS
 	UDP_TRUNCATION_SIZE = 512
