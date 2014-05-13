@@ -37,8 +37,8 @@ module RubyDNS
 		#		end
 		#	end
 		#
-		def initialize
-			@logger = Logger.new($stderr)
+		def initialize(options)
+			@logger = options[:logger] || Logger.new($stderr)
 		end
 
 		attr_accessor :logger
@@ -208,8 +208,8 @@ module RubyDNS
 		#		end
 		#	end
 		#
-		def initialize(&block)
-			super()
+		def initialize(options = {}, &block)
+			super(options)
 			
 			@events = {}
 			@rules = []
