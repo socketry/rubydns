@@ -58,6 +58,8 @@ end
 
 class TruncationTest < MiniTest::Test
 	def setup
+		TruncatedServer.controller output: File.open("/dev/null", "w")
+		
 		TruncatedServer.start
 	end
 	

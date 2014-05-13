@@ -54,6 +54,8 @@ end
 
 class DaemonTest < MiniTest::Test
 	def setup
+		BasicTestServer.controller output: File.open("/dev/null", "w")
+		
 		BasicTestServer.start
 	end
 	
