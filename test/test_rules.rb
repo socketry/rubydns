@@ -28,7 +28,10 @@ class RulesTest < MiniTest::Test
 	IN = Resolv::DNS::Resource::IN
 	
 	def setup
-		@server = RubyDNS::Server.new
+		@logger = Logger.new($stderr)
+		@logger.level = Logger::INFO
+		
+		@server = RubyDNS::Server.new(logger: @logger)
 		@true_callback = Proc.new { true }
 	end
 	
