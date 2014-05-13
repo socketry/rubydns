@@ -59,6 +59,8 @@ end
 
 class PassthroughTest < MiniTest::Test
 	def setup
+		PassthroughServer.controller output: File.open("/dev/null", "w")
+		
 		PassthroughServer.start
 	end
 	

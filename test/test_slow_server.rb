@@ -59,6 +59,7 @@ end
 
 class SlowServerTest < MiniTest::Test
 	def setup
+		SlowServer.controller output: File.open("/dev/null", "w")
 		SlowServer.start
 	end
 	
