@@ -21,6 +21,8 @@
 require_relative 'message'
 require_relative 'binary_string'
 
+require 'securerandom'
+
 module RubyDNS
 	class InvalidProtocolError < StandardError
 	end
@@ -34,15 +36,14 @@ module RubyDNS
 		# In the case of multiple servers, they will be checked in sequence.
 		def initialize(servers, options = {})
 			@servers = servers
-			@sequence = 0
 			
 			@options = options
 		end
 
 		# Provides the next sequence identification number which is used to keep track of DNS messages.
 		def next_id!
-			# Sequence IDs are 16-bit integers.
-			return (@sequence += 1) % (2**16)
+			# Using sequential numbers for the query ID is generally a bad thing because over UDP they can be spoofed. 16-bits isn't hard to guess either, but over UDP we also use a random port, so this makes effectively 32-bits of entropy to guess per request.
+			SecureRandom.random_number(2**16)
 		end
 
 		# Look up a named resource of the given resource_class.
@@ -192,7 +193,7 @@ module RubyDNS
 			
 			module UDPRequestHandler
 				def self.open(host, port, request)
-					# Open a datagram socket... EventMachine doesn't support connected datagram sockets, so we have to cheat a bit:
+					# Open a datagram socket... a random socket chosen by the OS by specifying 0 for the port:
 					EventMachine::open_datagram_socket('', 0, self, request, host, port)
 				end
 				
@@ -208,6 +209,9 @@ module RubyDNS
 				end
 				
 				def receive_data(data)
+					# local_port, local_ip = Socket.unpack_sockaddr_in(get_sockname)
+					# puts "Socket name: #{local_ip}:#{local_port}"
+					
 					# Receiving response from remote DNS server...
 					message = RubyDNS::decode_message(data)
 					
