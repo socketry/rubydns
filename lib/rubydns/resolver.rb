@@ -106,7 +106,7 @@ module RubyDNS
 				end
 				
 				# Measured in seconds:
-				@timeout = options[:timeout] || 5
+				@timeout = options[:timeout] || 1
 				
 				@logger = options[:logger]
 			end
