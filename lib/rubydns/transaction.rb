@@ -61,6 +61,10 @@ module RubyDNS
 		# Any options or configuration associated with the given transaction.
 		attr :options
 		
+		def [] key
+			@options[key]
+		end
+		
 		# The name of the question, which is typically the requested hostname.
 		def name
 			@question.to_s
