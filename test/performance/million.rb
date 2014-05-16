@@ -23,6 +23,8 @@
 require 'rubydns'
 require 'benchmark'
 
+require 'stackprof'
+
 Name = Resolv::DNS::Name
 IN = Resolv::DNS::Resource::IN
 
@@ -33,7 +35,7 @@ million = {}
 Benchmark.bm do |x|
 	x.report("Generate names") do
 		(1..1_000_000).each do |i|
-			domain = "domain#{i}"
+			domain = "domain#{i}.local"
 	
 			million[domain] = "#{69}.#{(i >> 16)%256}.#{(i >> 8)%256}.#{i%256}"
 		end
@@ -42,14 +44,21 @@ end
 
 # Run the server:
 
-RubyDNS::run_server(:listen => [[:udp, '0.0.0.0', 5300]]) do
-	match(/domain\d+/, IN::A) do |transaction|
-		transaction.respond!(million[transaction.name])
-	end
-	# Default DNS handler
-	otherwise do |transaction|
-		logger.info "Passing DNS request upstream..."
-		transaction.fail(:NXDomain)
+StackProf.run(mode: :cpu, out: 'rubydns.stackprof') do
+	RubyDNS::run_server(:listen => [[:udp, '0.0.0.0', 5300]]) do
+		@logger.level = Logger::WARN
+	
+		match(//, IN::A) do |transaction|
+			transaction.respond!(million[transaction.name])
+		end
+		
+		# Default DNS handler
+		otherwise do |transaction|
+			logger.info "Passing DNS request upstream..."
+			transaction.fail!(:NXDomain)
+			
+			EventMachine::stop
+		end
 	end
 end
 
