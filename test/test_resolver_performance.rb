@@ -86,6 +86,7 @@ class ResolverPerformanceTest < MiniTest::Test
 		rubydns_resolved = {}
 		resolv_resolved = {}
 		
+		puts nil, "Comparing resolvers..."
 		Benchmark.bm(20) do |x|
 			x.report("RubyDNS::Resolver") do
 				resolver = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
@@ -113,7 +114,7 @@ class ResolverPerformanceTest < MiniTest::Test
 			end
 		end
 		
-		DOMAINS.each do |domain|
+		DOMAINS.first(3).each do |domain|
 			# We don't really care if the responses aren't identical - they should be most of the time but due to the way DNS works this isn't always the case:
 			refute_empty resolv_resolved[domain]
 			refute_empty rubydns_resolved[domain]
