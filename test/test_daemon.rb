@@ -46,6 +46,10 @@ class BasicTestServer < Process::Daemon
 				transaction.respond!("192.168.1.2")
 			end
 
+			match(/peername/, IN::A) do |transaction|
+				transaction.respond!(transaction[:connection].peername[1])
+			end
+
 			# Default DNS handler
 			otherwise do |transaction|
 				transaction.fail!(:NXDomain)
@@ -93,6 +97,22 @@ class DaemonTest < MiniTest::Test
 				
 				assert_equal "foobar", answer[0].to_s
 				assert_equal "192.168.1.2", answer[2].address.to_s
+				
+				EventMachine.stop
+			end
+		end
+	end
+	
+	def test_peername
+		assert_equal :running, BasicTestServer.status
+
+		EventMachine.run do
+			resolver = RubyDNS::Resolver.new(BasicTestServer::SERVER_PORTS)
+
+			resolver.query("peername") do |response|
+				answer = response.answer.first
+				
+				assert_equal "127.0.0.1", answer[2].address.to_s
 				
 				EventMachine.stop
 			end

@@ -22,20 +22,24 @@ require_relative 'message'
 require_relative 'binary_string'
 
 module RubyDNS
-	# @returns the [port, ip address] of the given connection.
-	def self.get_peer_details(connection)
-		Socket.unpack_sockaddr_in(connection.get_peername)
+	module Peername
+		# Available for both UDP and TCP connections, returns `[address, port]`.
+		def peername
+			Socket.unpack_sockaddr_in(self.get_peername).reverse
+		end
 	end
 	
 	# Handling incoming UDP requests, which are single data packets, and pass them on to the given server.
 	module UDPHandler
+		include Peername
+		
 		def initialize(server)
 			@server = server
 		end
 		
 		# Process a packet of data with the given server. If an exception is thrown, a failure message will be sent back.
 		def self.process(server, data, options = {}, &block)
-			server.logger.debug "Receiving incoming query (#{data.bytesize} bytes)..."
+			server.logger.debug {"Receiving incoming query (#{data.bytesize} bytes)..."}
 			query = nil
 
 			begin
@@ -63,17 +67,20 @@ module RubyDNS
 			end
 		end
 		
+		def peername
+			Socket.unpack_sockaddr_in(self.get_peername)
+		end
+		
 		def receive_data(data)
-			peer_port, peer_ip = RubyDNS::get_peer_details(self)
-			options = {:peer => peer_ip}
+			options = {:connection => self}
 			
 			UDPHandler.process(@server, data, options) do |answer|
 				data = answer.encode
 				
-				@server.logger.debug "Writing response to client (#{data.bytesize} bytes) via UDP..."
+				@server.logger.debug {"Writing response to client (#{data.bytesize} bytes) via UDP..."}
 				
 				if data.bytesize > UDP_TRUNCATION_SIZE
-					@server.logger.warn "Response via UDP was larger than #{UDP_TRUNCATION_SIZE}!"
+					@server.logger.warn {"Response via UDP was larger than #{UDP_TRUNCATION_SIZE}!"}
 					
 					# Reencode data with truncation flag marked as true:
 					truncation_error = Resolv::DNS::Message.new(answer.id)
@@ -83,7 +90,8 @@ module RubyDNS
 				end
 				
 				# We explicitly use the ip and port given, because we found that send_data was unreliable in a callback.
-				self.send_datagram(data, peer_ip, peer_port)
+				# self.send_datagram(data, peer_ip, peer_port)
+				self.send_data(data)
 			end
 		end
 	end
@@ -92,6 +100,8 @@ module RubyDNS
 	end
 	
 	module TCPHandler
+		include Peername
+		
 		def initialize(server)
 			@server = server
 			
@@ -120,7 +130,7 @@ module RubyDNS
 			if (@buffer.size - @processed) >= @length
 				data = @buffer.string.byteslice(@processed, @length)
 				
-				options = {:peer => RubyDNS::get_peer_details(self)}
+				options = {:connection => self}
 				
 				UDPHandler.process(@server, data, options) do |answer|
 					data = answer.encode
