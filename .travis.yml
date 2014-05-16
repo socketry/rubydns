@@ -1,4 +1,7 @@
 language: ruby
+before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get install -y bind9
 rvm:
   - 1.9
   - 2.0

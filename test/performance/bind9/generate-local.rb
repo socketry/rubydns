@@ -1,9 +1,9 @@
 #!/usr/bin/env ruby
 
-File.open("million.zone", "w") do |f|
+File.open("local.zone", "w") do |f|
 	f.write(DATA.read)
 	
-	(1..1_000_000).each do |i|
+	(1..5_000).each do |i|
 		f.puts "domain#{i} IN A #{69}.#{(i >> 16)%256}.#{(i >> 8)%256}.#{i%256}"
 	end
 end
