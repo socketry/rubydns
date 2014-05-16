@@ -63,6 +63,8 @@ module RubyDNS
 		
 		# Process an incoming DNS message. Returns a serialized message to be sent back to the client.
 		def process_query(query, options = {}, &block)
+			start_time = Time.now
+			
 			# Setup answer
 			answer = Resolv::DNS::Message::new(query.id)
 			answer.qr = 1                 # 0 = Query, 1 = Response
@@ -77,20 +79,23 @@ module RubyDNS
 				
 				begin
 					query.question.each do |question, resource_class|
-						@logger.debug "Processing question #{question} #{resource_class}..."
+						@logger.debug {"[#{query.id}] Processing question #{question} #{resource_class}..."}
 				
 						transaction = Transaction.new(self, query, question, resource_class, answer, options)
 						
 						transaction.process
 					end
 				rescue
-					@logger.error "Exception thrown while processing #{transaction}!"
+					@logger.error {"[#{query.id}] Exception thrown while processing #{transaction}!"}
 					RubyDNS.log_exception(@logger, $!)
 				
 					answer.rcode = Resolv::DNS::RCode::ServFail
 				end
-			
+				
 				yield answer
+				
+				end_time = Time.now
+				@logger.debug {"[#{query.id}] Time to process request: #{end_time - start_time}s"}
 			end.resume
 		end
 		
@@ -267,10 +272,10 @@ module RubyDNS
 		
 		# Give a name and a record type, try to match a rule and use it for processing the given arguments.
 		def process(name, resource_class, *args)
-			@logger.debug "Searching for #{name} #{resource_class.name}"
+			@logger.debug {"Searching for #{name} #{resource_class.name}"}
 			
 			@rules.each do |rule|
-				@logger.debug "Checking rule #{rule}..."
+				@logger.debug {"Checking rule #{rule}..."}
 				
 				catch (:next) do
 					# If the rule returns true, we assume that it was successful and no further rules need to be evaluated.
