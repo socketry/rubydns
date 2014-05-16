@@ -107,6 +107,12 @@ The `RubyDNS::Resolver` is highly concurrent and can resolve individual names as
 
 The primary change is the removal of the dependency on `RExec` which was used for daemons and the addition of the testing dependency `process-daemon`. In order to create and run your own daemon, you may use `process-daemon` or another tool of your choice.
 
+The transaction options are now conveniently available:
+
+	transaction.options[key] == transaction[key]
+
+The remote peer address used to be available directly via `transaction[:peer]` but profiling revealed that the `EventMachine::Connection#get_peername` was moderately expensive. Therefore, the incoming connection is now available in `transaction[:connection]` and more specifically `transaction[:peer]` is no longer available and replaced by `transaction[:connection].peername` which gives `[ip_address, port]`.
+
 ### Migrating from RubyDNS 0.6.x to 0.7.x
 
 The asynchronous deferred processing became the default and only method for processing requests in `0.7.0`. This simplifies the API but there were a few changes, notably the removal of `defer!` and the addition of `defer`. The reason for this was due to issues relating to deferred processing and the flow of control, which were confusing and introduced bugs in specific situations. Now, you can assume flow control through the entire block even with non-blocking functions.
