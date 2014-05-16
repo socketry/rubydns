@@ -31,6 +31,10 @@ module RubyDNS
 		server = RubyDNS::RuleBasedServer.new(&block)
 		
 		EventMachine.run do
+			trap("INT") do
+				EventMachine::stop
+			end
+			
 			server.run(options)
 		end
 		
