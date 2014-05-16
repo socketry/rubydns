@@ -79,6 +79,28 @@ It is possible to create and integrate your own custom servers.
 
 This is the best way to integrate with other projects.
 
+## Performance
+
+We welcome additional benchmarks and feedback regarding RubyDNS performance.
+
+### Server
+
+The performance is on the same magnitude as `bind9` however `bind9` supports multiple CPUs and thus can scale more easily than RubyDNS using MRI. Some basic benchmarks resolving 1000 names concurrently using `RubyDNS::Resolver` gives the following:
+
+	Testing server performance...
+	                           user     system      total        real
+	RubyDNS::Server        0.140000   0.050000   0.190000 (  0.248862)
+	Bind9                  0.130000   0.030000   0.160000 (  0.160189)
+
+### Resolver
+
+The `RubyDNS::Resolver` is highly concurrent and can resolve individual names as fast as the built in `Resolv::DNS` resolver. Because the resolver is asynchronous, when dealing with multiple names, it can work more efficiently:
+
+	Comparing resolvers...
+	                           user     system      total        real
+	RubyDNS::Resolver      0.020000   0.010000   0.030000 (  0.280679)
+	Resolv::DNS            0.030000   0.010000   0.040000 (  2.801773)
+
 ## Compatibility
 
 ### Migrating from RubyDNS 0.7.x to 0.8.x
