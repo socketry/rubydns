@@ -30,10 +30,6 @@ INTERFACES = [
 ]
 
 class DroppingDaemon < Process::Daemon
-	# You can specify a specific directory to use for run-time information (pid, logs, etc):
-	# @@base_directory = File.expand_path("../", __FILE__)
-	# @@base_directory = "/var"
-
 	Name = Resolv::DNS::Name
 	IN = Resolv::DNS::Resource::IN
 	R = RubyDNS::Resolver.new(RubyDNS::System::nameservers)

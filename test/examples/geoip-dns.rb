@@ -35,10 +35,6 @@ INTERFACES = [
 # For more information, please see http://www.maxmind.com/en/geolite and http://geoip.rubyforge.org
 
 class GeoIPDNSDaemon < Process::Daemon
-	# You can specify a specific directory to use for run-time information (pid, logs, etc):
-	# @@base_directory = File.expand_path("../", __FILE__)
-	# @@base_directory = "/var"
-
 	Name = Resolv::DNS::Name
 	IN = Resolv::DNS::Resource::IN
 	R = RubyDNS::Resolver.new(RubyDNS::System::nameservers)
@@ -48,7 +44,7 @@ class GeoIPDNSDaemon < Process::Daemon
 		RubyDNS::run_server(:listen => INTERFACES) do
 			match(//, IN::A) do |transaction|
 				location = nil
-				peer = transaction.options[:peer]
+				peer = transaction.options[:connection].peername[0]
 				
 				if peer
 					logger.debug "Looking up geographic information for peer #{peer}"

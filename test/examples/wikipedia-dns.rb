@@ -57,8 +57,6 @@ end
 # To use, start the daemon and try:
 # dig @localhost fortune CNAME
 class WikipediaDNS < Process::Daemon
-	@@base_directory = File.dirname(__FILE__)
-
 	Name = Resolv::DNS::Name
 	IN = Resolv::DNS::Resource::IN
 

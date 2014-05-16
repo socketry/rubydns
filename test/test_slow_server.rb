@@ -29,10 +29,8 @@ require 'process/daemon'
 class SlowServer < Process::Daemon
 	SERVER_PORTS = [[:udp, '127.0.0.1', 5330], [:tcp, '127.0.0.1', 5330]]
 	
-	@@base_directory = File.dirname(__FILE__)
-
 	def working_directory
-		File.join(__dir__, "tmp")
+		File.expand_path("../tmp", __FILE__)
 	end
 	
 	IN = Resolv::DNS::Resource::IN

@@ -30,7 +30,7 @@ class PassthroughServer < Process::Daemon
 	SERVER_PORTS = [[:udp, '127.0.0.1', 5340], [:tcp, '127.0.0.1', 5340]]
 	
 	def working_directory
-		File.join(__dir__, "tmp")
+		File.expand_path("../tmp", __FILE__)
 	end
 	
 	Name = Resolv::DNS::Name

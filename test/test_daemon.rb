@@ -29,9 +29,11 @@ require 'process/daemon'
 class BasicTestServer < Process::Daemon
 	SERVER_PORTS = [[:udp, '127.0.0.1', 5350], [:tcp, '127.0.0.1', 5350]]
 
-	@@base_directory = File.dirname(__FILE__)
-
 	IN = Resolv::DNS::Resource::IN
+
+	def working_directory
+		File.expand_path("../tmp", __FILE__)
+	end
 
 	def startup
 		# Start the RubyDNS server
