@@ -77,7 +77,7 @@ class ServerPerformanceBind9 < Process::Daemon
 end
 
 class ServerPerformanceTest < MiniTest::Test
-	DOMAINS = (1..2000).collect do |i|
+	DOMAINS = (1..1000).collect do |i|
 		"domain#{i}.local"
 	end
 	
@@ -114,17 +114,19 @@ class ServerPerformanceTest < MiniTest::Test
 		Benchmark.bm(20) do |x|
 			@servers.each do |name, port|
 				x.report(name) do
-					resolver = RubyDNS::Resolver.new([[:udp, '127.0.0.1', port]])
-		
 					# Number of requests remaining since this is an asynchronous event loop:
-					pending = DOMAINS.size
-		
-					EventMachine::run do
-						DOMAINS.each do |domain|
-							resolver.addresses_for(domain) do |addresses|
-								resolved[domain] = addresses
+					5.times do
+						pending = DOMAINS.size
+						
+						EventMachine::run do
+							resolver = RubyDNS::Resolver.new([[:udp, '127.0.0.1', port]])
+						
+							DOMAINS.each do |domain|
+								resolver.addresses_for(domain) do |addresses|
+									resolved[domain] = addresses
 					
-								EventMachine::stop if (pending -= 1) == 0
+									EventMachine::stop if (pending -= 1) == 0
+								end
 							end
 						end
 					end
