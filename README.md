@@ -89,10 +89,10 @@ The performance is on the same magnitude as `bind9` however `bind9` supports mul
 
 	Testing server performance...
 	                           user     system      total        real
-	RubyDNS::Server        0.600000   0.230000   0.830000 (  1.122401)
-	Bind9                  0.700000   0.110000   0.810000 (  0.835131)
+	RubyDNS::Server        1.040000   0.320000   1.360000 (  6.469213)
+	Bind9                  1.940000   0.120000   2.060000 (  2.062983)
 
-These benchmarks are included in the unit tests. To test bind9 performance, it must be installed.
+These benchmarks are included in the unit tests. To test bind9 performance, it must be installed and `which named` must return the executable.
 
 ### Resolver
 
