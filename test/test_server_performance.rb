@@ -85,9 +85,6 @@ class ServerPerformanceTest < MiniTest::Test
 		@servers = []
 		@servers << ["RubyDNS::Server", 5300]
 		
-		# Increase the maximum number of file descriptors:
-		`ulimit -n 8000`
-		
 		ServerPerformanceRubyDNS.start
 		
 		unless ServerPerformanceBind9.named_executable.empty?
