@@ -8,7 +8,7 @@ For examples and documentation please see the main [project page][1].
 
 [1]: http://www.codeotaku.com/projects/rubydns/
 
-[![Build Status](https://travis-ci.org/ioquatix/rubydns.svg)](https://travis-ci.org/ioquatix/rubydns)
+[![Build Status](https://travis-ci.org/ioquatix/rubydns.svg?branch=master)](https://travis-ci.org/ioquatix/rubydns)
 [![Code Climate](https://codeclimate.com/github/ioquatix/rubydns.png)](https://codeclimate.com/github/ioquatix/rubydns)
 
 ## Installation
