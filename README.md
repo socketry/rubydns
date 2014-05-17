@@ -85,12 +85,14 @@ We welcome additional benchmarks and feedback regarding RubyDNS performance.
 
 ### Server
 
-The performance is on the same magnitude as `bind9` however `bind9` supports multiple CPUs and thus can scale more easily than RubyDNS using MRI. Some basic benchmarks resolving 1000 names concurrently using `RubyDNS::Resolver` gives the following:
+The performance is on the same magnitude as `bind9` however `bind9` supports multiple CPUs and thus can scale more easily than RubyDNS using MRI. Some basic benchmarks resolving 1000 names concurrently, repeated 5 times, using `RubyDNS::Resolver` gives the following:
 
 	Testing server performance...
 	                           user     system      total        real
-	RubyDNS::Server        0.140000   0.050000   0.190000 (  0.248862)
-	Bind9                  0.130000   0.030000   0.160000 (  0.160189)
+	RubyDNS::Server        0.600000   0.230000   0.830000 (  1.122401)
+	Bind9                  0.700000   0.110000   0.810000 (  0.835131)
+
+These benchmarks are included in the unit tests. To test bind9 performance, it must be installed.
 
 ### Resolver
 
@@ -100,6 +102,8 @@ The `RubyDNS::Resolver` is highly concurrent and can resolve individual names as
 	                           user     system      total        real
 	RubyDNS::Resolver      0.020000   0.010000   0.030000 (  0.280679)
 	Resolv::DNS            0.030000   0.010000   0.040000 (  2.801773)
+
+These benchmarks are included in the unit tests.
 
 ## Compatibility
 
