@@ -63,6 +63,10 @@ Start the server using `rvmsudo ./test.rb`. You can then test it using dig:
 	$ dig @localhost dev.mydomain.org
 	$ dig @localhost google.com
 
+### File Handle Limitations
+
+On some platforms (e.g. Mac OS X) the number of file descriptors is relatively low by default and should be increased by calling `ulimit -n 10000` before running tests or even before starting a server which expects a large number of concurrent incoming connections.
+
 ### Custom servers
 
 It is possible to create and integrate your own custom servers.
