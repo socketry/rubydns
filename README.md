@@ -123,7 +123,7 @@ The asynchronous deferred processing became the default and only method for proc
 
 	RubyDNS::run_server(:listen => SERVER_PORTS) do
 		match(/\.*.com/, IN::A) do |transaction|
-			# Won't block and won't continue until handle.resume is called.
+			# Won't block and won't continue until fiber.resume is called.
 			defer do |fiber|
 				# No domain exists, after 5 seconds:
 				EventMachine::Timer.new(5) do
