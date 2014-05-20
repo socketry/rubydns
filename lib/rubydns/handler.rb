@@ -22,30 +22,27 @@ require_relative 'message'
 require_relative 'binary_string'
 
 module RubyDNS
-	module Peername
-		# Available for both UDP and TCP connections, returns `[address, port]`.
-		def peername
-			Socket.unpack_sockaddr_in(self.get_peername).reverse
-		end
-	end
-	
 	# Handling incoming UDP requests, which are single data packets, and pass them on to the given server.
-	module UDPHandler
-		include Peername
+	class UDPHandler
+		include Celluloid::IO
 		
-		def initialize(server)
+		def initialize(server, socket)
 			@server = server
+			@socket = socket
 		end
 		
-		# Process a packet of data with the given server. If an exception is thrown, a failure message will be sent back.
-		def self.process(server, data, options = {}, &block)
+		def run
+			loop { async.handle_connection @socket.accept }
+		end
+		
+		def process_query
 			server.logger.debug {"Receiving incoming query (#{data.bytesize} bytes)..."}
 			query = nil
 
 			begin
 				query = RubyDNS::decode_message(data)
 
-				return server.process_query(query, options, &block)
+				return server.process_query(query, options)
 			rescue => error
 				server.logger.error "Error processing request!"
 				server.logger.error "#{error.class}: #{error.message}"
@@ -63,93 +60,69 @@ module RubyDNS
 				server_failure.rcode = Resolv::DNS::RCode::ServFail
 
 				# We can't do anything at this point...
-				yield server_failure
+				return server_failure
 			end
 		end
 		
-		def peername
-			Socket.unpack_sockaddr_in(self.get_peername)
-		end
-		
-		def receive_data(data)
-			options = {:connection => self}
+		def send_response(socket, answer)
+			data = answer.encode
 			
-			UDPHandler.process(@server, data, options) do |answer|
-				data = answer.encode
+			@server.logger.debug {"Writing response to client (#{data.bytesize} bytes) via UDP..."}
+			
+			if data.bytesize > UDP_TRUNCATION_SIZE
+				@server.logger.warn {"Response via UDP was larger than #{UDP_TRUNCATION_SIZE}!"}
 				
-				@server.logger.debug {"Writing response to client (#{data.bytesize} bytes) via UDP..."}
+				# Reencode data with truncation flag marked as true:
+				truncation_error = Resolv::DNS::Message.new(answer.id)
+				truncation_error.tc = 1
 				
-				if data.bytesize > UDP_TRUNCATION_SIZE
-					@server.logger.warn {"Response via UDP was larger than #{UDP_TRUNCATION_SIZE}!"}
-					
-					# Reencode data with truncation flag marked as true:
-					truncation_error = Resolv::DNS::Message.new(answer.id)
-					truncation_error.tc = 1
-					
-					data = truncation_error.encode
-				end
-				
-				# We explicitly use the ip and port given, because we found that send_data was unreliable in a callback.
-				# self.send_datagram(data, peer_ip, peer_port)
-				self.send_data(data)
+				data = truncation_error.encode
 			end
+			
+			socket.send(data, 0)
+		end
+		
+		def handle_connection(socket)
+			_, port, host = socket.peeraddr
+			options = {peer: host}
+			
+			data = socket.read(UDP_TRUNCATION_SIZE)
+			
+			answer = self.process_query(@server, data, options)
+			
+			send_response(socket, answer)
+		ensure
+			socket.close
 		end
 	end
 	
-	module TCPHandler
-		include Peername
-		
-		def initialize(server)
-			@server = server
+	class TCPHandler < UDPHandler
+		def handle_connection(socket)
+			_, port, host = socket.peeraddr
+			options = {peer: host}
 			
-			@buffer = BinaryStringIO.new
+			buffer = BinaryStringIO.new
+			length = 2
+			processed = 0
 			
-			@length = nil
-			@processed = 0
-		end
-		
-		# Receive the data via a TCP connection, process messages when we receive the indicated amount of data.
-		def receive_data(data)
-			# We buffer data until we've received the entire packet:
-			@buffer.write(data)
-			
-			# Message includes a 16-bit length field.. we need to see if we have received it yet:
-			if @length == nil
-				# Not enough data received yet...
-				if (@buffer.size - @processed) < 2
-					return
+			while (buffer.size - processed) < length
+				data = socket.read(UDP_TRUNCATION_SIZE)
+				
+				buffer.write(data)
+				
+				if buffer.size >= 2
+					length = buffer.string.byteslice(@processed, 2).unpack('n')[0]
+					processed += 2
 				end
-				
-				# Grab the length field:
-				@length = @buffer.string.byteslice(@processed, 2).unpack('n')[0]
-				@processed += 2
 			end
 			
-			if (@buffer.size - @processed) >= @length
-				data = @buffer.string.byteslice(@processed, @length)
-				
-				options = {:connection => self}
-				
-				UDPHandler.process(@server, data, options) do |answer|
-					data = answer.encode
-					
-					@server.logger.debug "Writing response to client (#{data.bytesize} bytes) via TCP..."
-					
-					self.send_data([data.bytesize].pack('n'))
-					self.send_data(data)
-				end
-				
-				@processed += @length
-				@length = nil
-			end
-		end
-		
-		# Check that all data received was processed.
-		def unbind
-			if @processed != @buffer.size
-				@server.logger.debug "Unprocessed data remaining (#{@buffer.size - @processed} bytes unprocessed) on incoming TCP connection."
-			end
+			data = buffer.string.byteslice(@processed, @length)
+			
+			answer = self.process_query(@server, data, options)
+			
+			send_response(socket, answer)
+		ensure
+			socket.close
 		end
 	end
-	
 end

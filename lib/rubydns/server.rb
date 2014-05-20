@@ -20,12 +20,16 @@
 
 require 'fiber'
 
+require 'celluloid/io'
+
 require_relative 'transaction'
 require_relative 'logger'
 
 module RubyDNS
 	
 	class Server
+		include Celluloid::IO
+		
 		# The default server interfaces
 		DEFAULT_INTERFACES = [[:udp, "0.0.0.0", 53], [:tcp, "0.0.0.0", 53]]
 		
@@ -38,6 +42,8 @@ module RubyDNS
 		#	end
 		#
 		def initialize(options)
+			@handlers = []
+			
 			@logger = options[:logger] || Logger.new($stderr)
 		end
 
@@ -50,15 +56,6 @@ module RubyDNS
 		# Give a name and a record type, try to match a rule and use it for processing the given arguments.
 		def process(name, resource_class, transaction)
 			raise NotImplementedError.new
-		end
-		
-		# Process a block with the current fiber. To resume processing from the block, call `fiber.resume`. You shouldn't call `fiber.resume` until after the top level block has returned.
-		def defer(&block)
-			fiber = Fiber.current
-			
-			yield(fiber)
-			
-			Fiber.yield
 		end
 		
 		# Process an incoming DNS message. Returns a serialized message to be sent back to the client.
@@ -74,29 +71,27 @@ module RubyDNS
 			answer.ra = 0                 # Does name server support recursion: 0 = No, 1 = Yes
 			answer.rcode = 0              # Response code: 0 = No errors
 			
-			Fiber.new do
-				transaction = nil
-				
-				begin
-					query.question.each do |question, resource_class|
-						@logger.debug {"[#{query.id}] Processing question #{question} #{resource_class}..."}
-				
-						transaction = Transaction.new(self, query, question, resource_class, answer, options)
-						
-						transaction.process
-					end
-				rescue
-					@logger.error {"[#{query.id}] Exception thrown while processing #{transaction}!"}
-					RubyDNS.log_exception(@logger, $!)
-				
-					answer.rcode = Resolv::DNS::RCode::ServFail
+			transaction = nil
+			
+			begin
+				query.question.each do |question, resource_class|
+					@logger.debug {"[#{query.id}] Processing question #{question} #{resource_class}..."}
+			
+					transaction = Transaction.new(self, query, question, resource_class, answer, options)
+					
+					transaction.process
 				end
-				
-				yield answer
-				
-				end_time = Time.now
-				@logger.debug {"[#{query.id}] Time to process request: #{end_time - start_time}s"}
-			end.resume
+			rescue
+				@logger.error {"[#{query.id}] Exception thrown while processing #{transaction}!"}
+				RubyDNS.log_exception(@logger, $!)
+			
+				answer.rcode = Resolv::DNS::RCode::ServFail
+			end
+			
+			yield answer
+			
+			end_time = Time.now
+			@logger.debug {"[#{query.id}] Time to process request: #{end_time - start_time}s"}
 		end
 		
 		#
@@ -119,36 +114,32 @@ module RubyDNS
 			interfaces = options[:listen] || DEFAULT_INTERFACES
 		
 			fire(:setup)
-		
+			
+			@sockets = []
+			
 			# Setup server sockets
 			interfaces.each do |spec|
-				if spec.is_a?(BasicSocket)
-					spec.do_not_reverse_lookup
-					optval = spec.getsockopt(Socket::SOL_SOCKET, Socket::SO_TYPE)
-					protocol = optval.unpack("i")[0]
-					ip = spec.local_address.ip_address
-					port = spec.local_address.ip_port
-					case protocol
-					when Socket::SOCK_DGRAM
-						@logger.info "Attaching to pre-existing UDP socket #{ip}:#{port}"
-						EventMachine.attach(spec, UDPHandler, self)
-					when Socket::SOCK_STREAM
-						@logger.info "Attaching to pre-existing TCP socket #{ip}:#{port}"
-						EventMachine.attach(spec, TCPHandler, self)
-					else
-						@logger.error "Ignoring unknown socket protocol: #{protocol}"
-					end
-				else
-					@logger.info "Listening on #{spec.join(':')}"
-					if spec[0] == :udp
-						EventMachine.open_datagram_socket(spec[1], spec[2], UDPHandler, self)
-					elsif spec[0] == :tcp
-						EventMachine.start_server(spec[1], spec[2], TCPHandler, self)
-					end
+				@logger.info "Listening on #{spec.join(':')}"
+				if spec[0] == :udp
+					@sockets << bind_udp_socket(spec[1], spec[2])
+				elsif spec[0] == :tcp
+					@sockets << bind_tcp_socket(spec[1], spec[2])
 				end
 			end
 		
 			fire(:start)
+		end
+		
+		private
+		
+		def bind_udp_socket(host, port)
+			socket = UDPSocket.new(host, port)
+			@handlers << UDPHandler.new(self, socket).async.run
+		end
+		
+		def bind_tcp_socket(host, port)
+			socket = TCPSocket.new(host, port)
+			@handlers << TCPHandler.new(self, socket).async.run
 		end
 	end
 	

@@ -60,6 +60,9 @@ end
 
 class DaemonTest < MiniTest::Test
 	def setup
+		Celluloid.shutdown
+		Celluloid.boot
+		
 		BasicTestServer.controller output: File.open("/dev/null", "w")
 		
 		BasicTestServer.start
@@ -72,50 +75,35 @@ class DaemonTest < MiniTest::Test
 	def test_basic_dns
 		assert_equal :running, BasicTestServer.status
 		
-		EventMachine.run do
-			resolver = RubyDNS::Resolver.new(BasicTestServer::SERVER_PORTS)
+		resolver = RubyDNS::Resolver.new(BasicTestServer::SERVER_PORTS)
+	
+		response = resolver.query("test.local")
+		answer = response.answer.first
 		
-			resolver.query("test.local") do |response|
-				answer = response.answer.first
-				
-				assert_equal "test.local", answer[0].to_s
-				assert_equal "192.168.1.1", answer[2].address.to_s
-				
-				EventMachine.stop
-			end
-		end
+		assert_equal "test.local", answer[0].to_s
+		assert_equal "192.168.1.1", answer[2].address.to_s
 	end
 	
 	def test_pattern_matching
 		assert_equal :running, BasicTestServer.status
 
-		EventMachine.run do
-			resolver = RubyDNS::Resolver.new(BasicTestServer::SERVER_PORTS)
+		resolver = RubyDNS::Resolver.new(BasicTestServer::SERVER_PORTS)
 
-			resolver.query("foobar") do |response|
-				answer = response.answer.first
-				
-				assert_equal "foobar", answer[0].to_s
-				assert_equal "192.168.1.2", answer[2].address.to_s
-				
-				EventMachine.stop
-			end
-		end
+		response = resolver.query("foobar")
+		answer = response.answer.first
+		
+		assert_equal "foobar", answer[0].to_s
+		assert_equal "192.168.1.2", answer[2].address.to_s
 	end
 	
 	def test_peername
 		assert_equal :running, BasicTestServer.status
 
-		EventMachine.run do
-			resolver = RubyDNS::Resolver.new(BasicTestServer::SERVER_PORTS)
+		resolver = RubyDNS::Resolver.new(BasicTestServer::SERVER_PORTS)
 
-			resolver.query("peername") do |response|
-				answer = response.answer.first
-				
-				assert_equal "127.0.0.1", answer[2].address.to_s
-				
-				EventMachine.stop
-			end
-		end
+		response = resolver.query("peername")
+		answer = response.answer.first
+		
+		assert_equal "127.0.0.1", answer[2].address.to_s
 	end
 end

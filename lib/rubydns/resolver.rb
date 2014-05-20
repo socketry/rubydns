@@ -22,15 +22,21 @@ require_relative 'message'
 require_relative 'binary_string'
 
 require 'securerandom'
+require 'celluloid/io'
 
 module RubyDNS
 	class InvalidProtocolError < StandardError
+	end
+	
+	class InvalidResponseError < StandardError
 	end
 	
 	class ResolutionFailure < StandardError
 	end
 	
 	class Resolver
+		include Celluloid::IO
+		
 		# Servers are specified in the same manor as options[:listen], e.g.
 		#   [:tcp/:udp, address, port]
 		# In the case of multiple servers, they will be checked in sequence.
@@ -38,6 +44,8 @@ module RubyDNS
 			@servers = servers
 			
 			@options = options
+			
+			@logger = options[:logger]
 		end
 
 		# Provides the next sequence identification number which is used to keep track of DNS messages.
@@ -47,53 +55,68 @@ module RubyDNS
 		end
 
 		# Look up a named resource of the given resource_class.
-		def query(name, resource_class = Resolv::DNS::Resource::IN::A, &block)
+		def query(name, resource_class = Resolv::DNS::Resource::IN::A)
 			message = Resolv::DNS::Message.new(next_id!)
 			message.rd = 1
 			message.add_question name, resource_class
 			
 			send_message(message, &block)
 		end
-
-		def send_message(message, &block)
-			Request.fetch(message, @servers, @options, &block)
-		end
-
+		
 		# Yields a list of `Resolv::IPv4` and `Resolv::IPv6` addresses for the given `name` and `resource_class`.
-		def addresses_for(name, resource_class = Resolv::DNS::Resource::IN::A, &block)
-			query(name, resource_class) do |response|
-				# Resolv::DNS::Name doesn't retain the trailing dot.
-				name = name.sub(/\.$/, '')
-				
-				case response
-				when Message
-					yield response.answer.select{|record| record[0].to_s == name}.collect{|record| record[2].address}
-				else
-					yield []
-				end
+		def addresses_for(name, resource_class = Resolv::DNS::Resource::IN::A)
+			response = query(name, resource_class)
+			# Resolv::DNS::Name doesn't retain the trailing dot.
+			name = name.sub(/\.$/, '')
+			
+			case response
+			when Message
+				response.answer.select{|record| record[0].to_s == name}.collect{|record| record[2].address}
+			else
+				nil
 			end
 		end
 
+		def send_message(message)
+			request = Request.new(message, @servers, @options)
+			
+			timer = after(@options[:timeout] || 0.5) do 
+				@logger.debug "[#{message.id}] Request timed out!" if @logger
+				
+				request.cancel!
+			end
+			
+			response = nil
+			
+			while request.servers_available?
+				timer.reset
+				
+				begin
+					response = request.try_next_server!
+					
+					if response.tc != 0
+						@logger.warn "[#{message.id}] Received truncated response!" if @logger
+					elsif response.id != message.id
+						@logger.warn "[#{message.id}] Received response with incorrect message id: #{response.id}" if @logger
+					else
+						@logger.debug "[#{message.id}] Received valid response #{response.inspect}" if @logger
+					
+						return response
+					end
+				rescue IOError
+					@logger.warn "[#{message.id}] Error while reading from network!" if @logger
+				end
+			end
+			
+			return nil
+		ensure
+			timer.cancel
+		end
+		
+		private
+		
 		# Manages a single DNS question message across one or more servers.
 		class Request
-			include EventMachine::Deferrable
-			
-			def self.fetch(*args)
-				request = self.new(*args)
-				
-				request.callback do |message|
-					yield message
-				end
-				
-				request.errback do |error|
-					# In the case of a timeout, error will be nil, so we make one up.
-					
-					yield error
-				end
-				
-				request.run!
-			end
-			
 			def initialize(message, servers, options = {}, &block)
 				@message = message
 				@packet = message.encode
@@ -105,9 +128,6 @@ module RubyDNS
 					@servers.delete_if{|server| server[0] == :udp}
 				end
 				
-				# Measured in seconds:
-				@timeout = options[:timeout] || 1
-				
 				@logger = options[:logger]
 			end
 			
@@ -115,155 +135,84 @@ module RubyDNS
 			attr :packet
 			attr :logger
 			
-			def run!
-				try_next_server!
+			def servers_available?
+				@servers.size > 0
 			end
 			
-			# Once either an exception or message is received, we update the status of this request.
-			def process_response!(response)
-				finish_request!
-				
-				if Exception === response
-					@logger.warn "[#{@message.id}] Failure while processing response #{response}!" if @logger
-					RubyDNS.log_exception(@logger, response) if @logger
+			def try_next_server!
+				if @servers.size > 0
+					server = @servers.shift
 					
-					try_next_server!
-				elsif response.tc != 0
-					@logger.warn "[#{@message.id}] Received truncated response!" if @logger
+					@logger.debug "[#{@message.id}] Sending request to server #{server.inspect}" if @logger
 					
-					try_next_server!
-				elsif response.id != @message.id
-					@logger.warn "[#{@message.id}] Received response with incorrect message id: #{response.id}" if @logger
-					
-					try_next_server!
+					# We make requests one at a time to the given server, naturally the servers are ordered in terms of priority.
+					case server[0]
+					when :udp
+						response = try_udp_server(server[1], server[2])
+					when :tcp
+						response = try_tcp_server(server[1], server[2])
+					else
+						raise InvalidProtocolError.new(server)
+					end
 				else
-					@logger.debug "[#{@message.id}] Received valid response #{response.inspect}" if @logger
-					
-					succeed response
+					raise ResolutionFailure.new("No available servers responded to the request.")
 				end
+			end
+			
+			def cancel!
+				finish_request
 			end
 			
 			private
 			
 			# Closes any connections and cancels any timeout.
-			def finish_request!
-				cancel_timeout
-				
+			def finish_request
 				# Cancel an existing request if it is in flight:
-				if @request
-					@request.close_connection
-					@request = nil
+				if @socket
+					@socket.close
+					@socket = nil
 				end
 			end
 			
-			def try_next_server!
-				if @servers.size > 0
-					@server = @servers.shift
+			def try_udp_server(host, port)
+				@socket = Celluloid::IO::UDPSocket.new
+				@socket.send(self.packet, 0, host, port)
+				
+				data, (_, remote_port) = @socket.recvfrom(UDP_TRUNCATION_SIZE)
+				# Need to check host, otherwise security issue.
+				
+				if port != remote_port
+					raise InvalidResponseError.new("Data was not received from correct remote port (#{port} != #{remote_port})")
+				end
+				
+				message = RubyDNS::decode_message(data)
+			ensure
+				finish_request
+			end
+			
+			def try_tcp_server(host, port)
+				@socket = Celluloid::IO::TCPSocket.new(host, port)
+				
+				data = self.packet
+				@socket.send([data.bytesize].pack('n'), 0)
+				@socket.send(data, 0)
+				
+				buffer = BinaryStringIO.new
+				length = 2
+				
+				while buffer.size < length
+					data = @socket.recv(UDP_TRUNCATION_SIZE)
+					buffer.write(data)
 					
-					@logger.debug "[#{@message.id}] Sending request to server #{@server.inspect}" if @logger
-					
-					# We make requests one at a time to the given server, naturally the servers are ordered in terms of priority.
-					case @server[0]
-					when :udp
-						@request = UDPRequestHandler.open(@server[1], @server[2], self)
-					when :tcp
-						@request = TCPRequestHandler.open(@server[1], @server[2], self)
-					else
-						raise InvalidProtocolError.new(@server)
+					if buffer.size > 2
+						length += buffer.string.byteslice(0, 2).unpack('n')[0]
 					end
-					
-					# Setting up the timeout...
-					timeout(@timeout)
-				else
-					fail ResolutionFailure.new("No available servers responded to the request.")
-				end
-			end
-			
-			def timeout seconds
-				cancel_timeout
-				
-				@deferred_timeout = EventMachine::Timer.new(seconds) do
-					@logger.debug "[#{@message.id}] Request timed out!" if @logger
-					
-					finish_request!
-					
-					try_next_server!
-				end
-			end
-			
-			module UDPRequestHandler
-				def self.open(host, port, request)
-					# Open a datagram socket... a random socket chosen by the OS by specifying 0 for the port:
-					EventMachine::open_datagram_socket('', 0, self, request, host, port)
 				end
 				
-				def initialize(request, host, port)
-					@request = request
-					@host = host
-					@port = port
-				end
-				
-				def post_init
-					# Sending question to remote DNS server...
-					send_datagram(@request.packet, @host, @port)
-				end
-				
-				def receive_data(data)
-					# local_port, local_ip = Socket.unpack_sockaddr_in(get_sockname)
-					# puts "Socket name: #{local_ip}:#{local_port}"
-					
-					# Receiving response from remote DNS server...
-					message = RubyDNS::decode_message(data)
-					
-					# The message id must match, and it can't be truncated:
-					@request.process_response!(message)
-				rescue Resolv::DNS::DecodeError => error
-					@request.process_response!(error)
-				end
-			end
-			
-			module TCPRequestHandler
-				def self.open(host, port, request)
-					EventMachine::connect(host, port, TCPRequestHandler, request)
-				end
-				
-				def initialize(request)
-					@request = request
-					@buffer = nil
-					@length = nil
-				end
-				
-				def post_init
-					data = @request.packet
-					
-					send_data([data.bytesize].pack('n'))
-					send_data data
-				end
-				
-				def receive_data(data)
-					# We buffer data until we've received the entire packet:
-					@buffer ||= BinaryStringIO.new
-					@buffer.write(data)
-
-					# If we've received enough data and we haven't figured out the length yet...
-					if @length == nil and @buffer.size > 2
-						# Extract the length from the buffer:
-						@length = @buffer.string.byteslice(0, 2).unpack('n')[0]
-					end
-
-					# If we know what the length is, and we've got that much data, we can decode the message:
-					if @length != nil and @buffer.size >= (@length + 2)
-						data = @buffer.string.byteslice(2, @length)
-						
-						message = RubyDNS::decode_message(data)
-						
-						@request.process_response!(message)
-					end
-					
-					# If we have received more data than expected, should this be an error?
-				rescue Resolv::DNS::DecodeError => error
-					@request.process_response!(error)
-				end
+				data = buffer.string.byteslice(2, length - 2)
+				message = RubyDNS::decode_message(data)
+			ensure
+				finish_request
 			end
 		end
 	end

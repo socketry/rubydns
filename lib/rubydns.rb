@@ -24,19 +24,14 @@ require_relative 'rubydns/message'
 require_relative 'rubydns/server'
 require_relative 'rubydns/resolver'
 require_relative 'rubydns/handler'
+require_relative 'rubydns/logger'
 
 module RubyDNS
 	# Run a server with the given rules.
 	def self.run_server (options = {}, &block)
-		server = RubyDNS::RuleBasedServer.new(&block)
+		supervisor = RubyDNS::RuleBasedServer.supervise(&block)
 		
-		EventMachine.run do
-			trap("INT") do
-				EventMachine::stop
-			end
-			
-			server.run(options)
-		end
+		trap("INT") { supervisor.terminate; exit }
 		
 		server.fire(:stop)
 	end
