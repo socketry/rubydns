@@ -96,9 +96,6 @@ module RubyDNS
 		end
 	end
 	
-	class LengthError < StandardError
-	end
-	
 	module TCPHandler
 		include Peername
 		
@@ -118,8 +115,9 @@ module RubyDNS
 			
 			# Message includes a 16-bit length field.. we need to see if we have received it yet:
 			if @length == nil
+				# Not enough data received yet...
 				if (@buffer.size - @processed) < 2
-					raise LengthError.new("Malformed message smaller than two bytes received")
+					return
 				end
 				
 				# Grab the length field:
@@ -149,7 +147,7 @@ module RubyDNS
 		# Check that all data received was processed.
 		def unbind
 			if @processed != @buffer.size
-				raise LengthError.new("Unprocessed data remaining (#{@buffer.size - @processed} bytes unprocessed)")
+				@server.logger.debug "Unprocessed data remaining (#{@buffer.size - @processed} bytes unprocessed) on incoming TCP connection."
 			end
 		end
 	end
