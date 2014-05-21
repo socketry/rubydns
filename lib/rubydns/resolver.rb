@@ -60,7 +60,7 @@ module RubyDNS
 			message.rd = 1
 			message.add_question name, resource_class
 			
-			send_message(message, &block)
+			send_message(message)
 		end
 		
 		# Yields a list of `Resolv::IPv4` and `Resolv::IPv6` addresses for the given `name` and `resource_class`.
@@ -88,7 +88,7 @@ module RubyDNS
 			
 			response = nil
 			
-			while request.servers_available?
+			loop do
 				timer.reset
 				
 				begin
@@ -107,8 +107,6 @@ module RubyDNS
 					@logger.warn "[#{message.id}] Error while reading from network!" if @logger
 				end
 			end
-			
-			return nil
 		ensure
 			timer.cancel
 		end

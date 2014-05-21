@@ -21,7 +21,9 @@
 # THE SOFTWARE.
 
 require 'celluloid'
-Celluloid.task_class = Celluloid::TaskThread
+
+# Seems to cause major issues:
+# Celluloid.task_class = Celluloid::TaskThread
 
 require 'rubygems'
 require 'rubydns'
@@ -35,7 +37,7 @@ Name = Resolv::DNS::Name
 IN = Resolv::DNS::Resource::IN
 INTERFACES = [
 	[:udp, '0.0.0.0', 5300],
-#	[:tcp, '0.0.0.0', 5300],
+	[:tcp, '0.0.0.0', 5300],
 #	[:udp, '::0', 5300],
 #	[:tcp, '::0', 5300],
 ]

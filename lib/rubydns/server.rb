@@ -32,8 +32,6 @@ module RubyDNS
 		
 		finalizer :shutdown
 		
-		trap_exit :handler_died
-		
 		# The default server interfaces
 		DEFAULT_INTERFACES = [[:udp, "0.0.0.0", 53], [:tcp, "0.0.0.0", 53]]
 		
@@ -129,38 +127,17 @@ module RubyDNS
 			# Setup server sockets
 			@interfaces.each do |spec|
 				@logger.info "Listening on #{spec.join(':')}"
+				
 				if spec[0] == :udp
-					bind_udp_socket(spec[1], spec[2])
+					link UDPHandler.supervise(self, spec[1], spec[2])
 				elsif spec[0] == :tcp
-					bind_tcp_socket(spec[1], spec[2])
+					link TCPHandler.supervise(self, spec[1], spec[2])
+				else
+					raise ArgumentError.new("Invalid connection specification: #{spec.inspect}")
 				end
 			end
-		
+			
 			fire(:start)
-		end
-		
-		private
-		
-		def handler_died(handler, reason)
-			@logger.error "Handler #{handler.class} died: #{reason.inspect}"
-		end
-		
-		def bind_udp_socket(host, port)
-			handler = UDPHandler.new(self, host, port)
-			
-			# Get notified of errors:
-			self.link handler
-			
-			@handlers << handler
-		end
-		
-		def bind_tcp_socket(host, port)
-			handler = TCPHandler.new(host, port)
-			
-			# Get notified of errors:
-			self.link handler
-			
-			@handlers << handler
 		end
 	end
 	
@@ -321,15 +298,6 @@ module RubyDNS
 			else
 				@logger.warn "Failed to handle #{name} #{resource_class.name}!"
 			end
-		end
-		
-		# Process a block with the current fiber. To resume processing from the block, call `fiber.resume`. You shouldn't call `fiber.resume` until after the top level block has returned.
-		def defer(&block)
-			fiber = Fiber.current
-			
-			yield(fiber)
-			
-			Fiber.yield
 		end
 	end
 end
