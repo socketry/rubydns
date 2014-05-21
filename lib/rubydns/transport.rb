@@ -20,6 +20,8 @@
 
 require 'stringio'
 
+require_relative 'message'
+
 module RubyDNS
 	# A helper class for processing incoming network data.
 	class BinaryStringIO < StringIO
@@ -27,6 +29,42 @@ module RubyDNS
 			super
 		
 			set_encoding("BINARY")
+		end
+	end
+	
+	module StreamTransport
+		def self.read_chunk(socket)
+			# The data buffer:
+			buffer = BinaryStringIO.new
+			
+			# First we need to read in the length of the packet
+			while buffer.size < 2
+				buffer.write socket.readpartial(1)
+			end
+			
+			# Read in the length, the first two bytes:
+			length = buffer.string.byteslice(0, 2).unpack('n')[0]
+			
+			# Read data until we have the amount specified:
+			while (buffer.size - 2) < length
+				required = (2 + length) - buffer.size
+				
+				# Read precisely the required amount:
+				buffer.write socket.readpartial(required)
+			end
+			
+			return buffer.string.byteslice(2, length)
+		end
+		
+		def self.write_message(socket, message)
+			write_chunk(socket, message.encode)
+		end
+		
+		def self.write_chunk(socket, output_data)
+			socket.write([output_data.bytesize].pack('n'))
+			socket.write(output_data)
+			
+			return output_data.bytesize
 		end
 	end
 end

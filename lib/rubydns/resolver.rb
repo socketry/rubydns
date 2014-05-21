@@ -18,8 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require_relative 'message'
-require_relative 'binary_string'
+require_relative 'handler'
 
 require 'securerandom'
 require 'celluloid/io'
@@ -45,7 +44,7 @@ module RubyDNS
 			
 			@options = options
 			
-			@logger = options[:logger]
+			@logger = options[:logger] || Celluloid.logger
 		end
 
 		# Provides the next sequence identification number which is used to keep track of DNS messages.
@@ -105,6 +104,7 @@ module RubyDNS
 					end
 				rescue IOError
 					@logger.warn "[#{message.id}] Error while reading from network!" if @logger
+					raise
 				end
 			end
 		ensure
@@ -126,7 +126,7 @@ module RubyDNS
 					@servers.delete_if{|server| server[0] == :udp}
 				end
 				
-				@logger = options[:logger]
+				@logger = options[:logger] || Celluloid.logger
 			end
 			
 			attr :message
@@ -144,14 +144,18 @@ module RubyDNS
 					@logger.debug "[#{@message.id}] Sending request to server #{server.inspect}" if @logger
 					
 					# We make requests one at a time to the given server, naturally the servers are ordered in terms of priority.
-					case server[0]
+					response = case server[0]
 					when :udp
-						response = try_udp_server(server[1], server[2])
+						try_udp_server(server[1], server[2])
 					when :tcp
-						response = try_tcp_server(server[1], server[2])
+						try_tcp_server(server[1], server[2])
 					else
 						raise InvalidProtocolError.new(server)
 					end
+					
+					@logger.debug "[#{@message.id}] Got response #{response}" if @logger
+					
+					return response
 				else
 					raise ResolutionFailure.new("No available servers responded to the request.")
 				end
@@ -191,24 +195,11 @@ module RubyDNS
 			def try_tcp_server(host, port)
 				@socket = Celluloid::IO::TCPSocket.new(host, port)
 				
-				data = self.packet
-				@socket.send([data.bytesize].pack('n'), 0)
-				@socket.send(data, 0)
+				StreamTransport.write_chunk(@socket, self.packet)
 				
-				buffer = BinaryStringIO.new
-				length = 2
+				input_data = StreamTransport.read_chunk(@socket)
 				
-				while buffer.size < length
-					data = @socket.recv(UDP_TRUNCATION_SIZE)
-					buffer.write(data)
-					
-					if buffer.size > 2
-						length += buffer.string.byteslice(0, 2).unpack('n')[0]
-					end
-				end
-				
-				data = buffer.string.byteslice(2, length - 2)
-				message = RubyDNS::decode_message(data)
+				message = RubyDNS::decode_message(input_data)
 			ensure
 				finish_request
 			end

@@ -18,8 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require_relative 'message'
-require_relative 'binary_string'
+require_relative 'transport'
 
 module RubyDNS
 	class GenericHandler
@@ -113,8 +112,6 @@ module RubyDNS
 			@socket.send(output_data, 0, remote_host, remote_port)
 		rescue EOFError => error
 			@logger.warn "TCP session ended prematurely!"
-		rescue Resolv::DNS::DecodeError
-			@logger.warn "Could not decode incoming data!"
 		end
 	end
 	
@@ -134,40 +131,13 @@ module RubyDNS
 			_, remote_port, remote_host = socket.peeraddr
 			options = {peer: remote_host}
 			
-			# The data buffer:
-			buffer = BinaryStringIO.new
-			
-			# First we need to read in the length of the packet
-			while buffer.size < 2
-				buffer.write socket.readpartial(1)
-			end
-			
-			# Read in the length, the first two bytes:
-			length = buffer.string.byteslice(0, 2).unpack('n')[0]
-			
-			# Read data until we have the amount specified:
-			while (buffer.size - 2) < length
-				required = (2 + length) - buffer.size
-				
-				buffer.write socket.readpartial(required)
-			end
-			
-			input_data = buffer.string.byteslice(2, length)
+			input_data = StreamTransport.read_chunk(socket)
 			
 			answer = process_query(input_data, options)
 			
-			output_data = answer.encode
+			length = StreamTransport.write_message(socket, answer)
 			
-			@logger.debug "Writing response to client (#{output_data.bytesize} bytes) via TCP..."
-			
-			socket.write([output_data.bytesize].pack('n'))
-			socket.write(output_data)
-			
-			unprocessed = buffer.size - (2 + length)
-			
-			if unprocessed != 0
-				@logger.warn "TCP session closing with #{unprocessed} bytes unused incoming data!"
-			end
+			@logger.debug "Wrote #{length} bytes via TCP..."
 		rescue EOFError => error
 			@logger.warn "TCP session ended prematurely!"
 		rescue Resolv::DNS::DecodeError
