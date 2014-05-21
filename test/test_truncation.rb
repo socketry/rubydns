@@ -25,22 +25,15 @@ require 'minitest/autorun'
 require 'rubydns'
 require 'rubydns/extensions/string'
 
-require 'process/daemon'
-
-class TruncatedServer < Process::Daemon
+class TruncationTest < MiniTest::Test
 	SERVER_PORTS = [[:udp, '127.0.0.1', 5320], [:tcp, '127.0.0.1', 5320]]
-	
-	def working_directory
-		File.expand_path("../tmp", __FILE__)
-	end
-	
 	IN = Resolv::DNS::Resource::IN
 	
-	def startup
-		# RubyDNS::log_bad_messages!("bad.log")
+	def setup
+		Celluloid.boot
 		
 		# Start the RubyDNS server
-		RubyDNS::run_server(:listen => SERVER_PORTS) do
+		RubyDNS::run_server(:listen => SERVER_PORTS, asynchronous: true) do
 			match("truncation", IN::TXT) do |transaction|
 				text = "Hello World! " * 100
 				transaction.respond!(*text.chunked)
@@ -51,35 +44,21 @@ class TruncatedServer < Process::Daemon
 				transaction.fail!(:NXDomain)
 			end
 		end
-	end
-end
-
-class TruncationTest < MiniTest::Test
-	def setup
-		TruncatedServer.controller output: File.open("/dev/null", "w")
 		
-		TruncatedServer.start
+		sleep 1
 	end
 	
 	def teardown
-		TruncatedServer.stop
+		Celluloid.shutdown
 	end
 	
-	IN = Resolv::DNS::Resource::IN
-	
 	def test_tcp_failover
-		resolver = RubyDNS::Resolver.new(TruncatedServer::SERVER_PORTS)
+		resolver = RubyDNS::Resolver.new(SERVER_PORTS)
 		
-		EventMachine::run do
-			resolver.query("truncation", IN::TXT) do |response|
-				refute_kind_of RubyDNS::ResolutionFailure, response
-				
-				text = response.answer.first
-				
-				assert_equal "Hello World! " * 100, text[2].strings.join
-				
-				EventMachine::stop
-			end
-		end
+		response = resolver.query("truncation", IN::TXT)
+
+		text = response.answer.first
+		
+		assert_equal "Hello World! " * 100, text[2].strings.join
 	end
 end
