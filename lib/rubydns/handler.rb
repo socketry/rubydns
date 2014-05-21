@@ -26,28 +26,34 @@ module RubyDNS
 	class UDPHandler
 		include Celluloid::IO
 		
-		def initialize(server, socket)
+		def initialize(server, host, port)
+			@socket = UDPSocket.new
+			@socket.bind(host, port)
+			
 			@server = server
-			@socket = socket
+			
+			@logger = @server.logger || Celuloid.logger
+			
+			async.run
 		end
 		
 		def run
-			loop { async.handle_connection @socket.accept }
+			loop { handle_connection }
 		end
 		
-		def process_query
-			server.logger.debug {"Receiving incoming query (#{data.bytesize} bytes)..."}
+		def process_query(data, options)
+			@logger.debug "Receiving incoming query (#{data.bytesize} bytes)..."
 			query = nil
 
 			begin
 				query = RubyDNS::decode_message(data)
 
-				return server.process_query(query, options)
+				return @server.process_query(query, options)
 			rescue => error
-				server.logger.error "Error processing request!"
-				server.logger.error "#{error.class}: #{error.message}"
+				@logger.error "Error processing request!"
+				@logger.error "#{error.class}: #{error.message}"
 
-				error.backtrace.each { |at| server.logger.error at }
+				error.backtrace.each { |line| @logger.error line }
 
 				# Encoding may fail, so we need to handle this particular case:
 				server_failure = Resolv::DNS::Message::new(query ? query.id : 0)
@@ -64,39 +70,43 @@ module RubyDNS
 			end
 		end
 		
-		def send_response(socket, answer)
-			data = answer.encode
+		def handle_connection
+			@logger.debug "Waiting for incoming UDP packet #{@socket.inspect}..."
 			
-			@server.logger.debug {"Writing response to client (#{data.bytesize} bytes) via UDP..."}
+			input_data, (_, remote_port, remote_host) = @socket.recvfrom(UDP_TRUNCATION_SIZE)
 			
-			if data.bytesize > UDP_TRUNCATION_SIZE
-				@server.logger.warn {"Response via UDP was larger than #{UDP_TRUNCATION_SIZE}!"}
+			@logger.debug "Got incoming packet of size #{input_data.size} bytes..."
+			
+			options = {peer: remote_host}
+			
+			answer = process_query(input_data, options)
+			
+			output_data = answer.encode
+			
+			@logger.debug "Writing response to client (#{output_data.bytesize} bytes) via UDP..."
+			
+			if output_data.bytesize > UDP_TRUNCATION_SIZE
+				@logger.warn "Response via UDP was larger than #{UDP_TRUNCATION_SIZE}!"
 				
 				# Reencode data with truncation flag marked as true:
 				truncation_error = Resolv::DNS::Message.new(answer.id)
 				truncation_error.tc = 1
 				
-				data = truncation_error.encode
+				output_data = truncation_error.encode
 			end
 			
-			socket.send(data, 0)
-		end
-		
-		def handle_connection(socket)
-			_, port, host = socket.peeraddr
-			options = {peer: host}
-			
-			data = socket.read(UDP_TRUNCATION_SIZE)
-			
-			answer = self.process_query(@server, data, options)
-			
-			send_response(socket, answer)
-		ensure
-			socket.close
+			@socket.send(output_data, 0, remote_host, remote_port)
+		rescue => error
+			puts error.inspect
+			raise
 		end
 	end
 	
 	class TCPHandler < UDPHandler
+		def run
+			loop { async.handle_connection @socket.accept }
+		end
+		
 		def handle_connection(socket)
 			_, port, host = socket.peeraddr
 			options = {peer: host}

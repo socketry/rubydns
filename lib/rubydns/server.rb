@@ -30,6 +30,10 @@ module RubyDNS
 	class Server
 		include Celluloid::IO
 		
+		finalizer :shutdown
+		
+		trap_exit :handler_died
+		
 		# The default server interfaces
 		DEFAULT_INTERFACES = [[:udp, "0.0.0.0", 53], [:tcp, "0.0.0.0", 53]]
 		
@@ -41,16 +45,25 @@ module RubyDNS
 		#		end
 		#	end
 		#
-		def initialize(options)
+		def initialize(options = {})
+			puts options.inspect
+			
 			@handlers = []
 			
-			@logger = options[:logger] || Logger.new($stderr)
+			@logger = options[:logger] || Celluloid.logger
+			@interfaces = options[:listen] || DEFAULT_INTERFACES
+			
+			async.run
 		end
 
 		attr_accessor :logger
 
 		# Fire the named event as part of running the server.
 		def fire(event_name)
+		end
+		
+		def shutdown
+			fire(:stop)
 		end
 		
 		# Give a name and a record type, try to match a rule and use it for processing the given arguments.
@@ -88,10 +101,10 @@ module RubyDNS
 				answer.rcode = Resolv::DNS::RCode::ServFail
 			end
 			
-			yield answer
-			
 			end_time = Time.now
 			@logger.debug {"[#{query.id}] Time to process request: #{end_time - start_time}s"}
+			
+			return answer
 		end
 		
 		#
@@ -108,22 +121,18 @@ module RubyDNS
 		#   Process::Sys.setuid(server_uid)
 		#   INTERFACES = [socket]
 		#
-		def run(options = {})
+		def run
 			@logger.info "Starting RubyDNS server (v#{RubyDNS::VERSION})..."
-		
-			interfaces = options[:listen] || DEFAULT_INTERFACES
-		
+			
 			fire(:setup)
 			
-			@sockets = []
-			
 			# Setup server sockets
-			interfaces.each do |spec|
+			@interfaces.each do |spec|
 				@logger.info "Listening on #{spec.join(':')}"
 				if spec[0] == :udp
-					@sockets << bind_udp_socket(spec[1], spec[2])
+					bind_udp_socket(spec[1], spec[2])
 				elsif spec[0] == :tcp
-					@sockets << bind_tcp_socket(spec[1], spec[2])
+					bind_tcp_socket(spec[1], spec[2])
 				end
 			end
 		
@@ -132,14 +141,26 @@ module RubyDNS
 		
 		private
 		
+		def handler_died(handler, reason)
+			@logger.error "Handler #{handler.class} died: #{reason.inspect}"
+		end
+		
 		def bind_udp_socket(host, port)
-			socket = UDPSocket.new(host, port)
-			@handlers << UDPHandler.new(self, socket).async.run
+			handler = UDPHandler.new(self, host, port)
+			
+			# Get notified of errors:
+			self.link handler
+			
+			@handlers << handler
 		end
 		
 		def bind_tcp_socket(host, port)
-			socket = TCPSocket.new(host, port)
-			@handlers << TCPHandler.new(self, socket).async.run
+			handler = TCPHandler.new(host, port)
+			
+			# Get notified of errors:
+			self.link handler
+			
+			@handlers << handler
 		end
 	end
 	
@@ -213,6 +234,9 @@ module RubyDNS
 				@pattern.inspect
 			end
 		end
+		
+		# Don't wrap the block going into initialize.
+		execute_block_on_receiver :initialize
 		
 		# Instantiate a server with a block
 		#

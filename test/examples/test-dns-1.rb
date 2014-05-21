@@ -20,6 +20,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+require 'celluloid'
+Celluloid.task_class = Celluloid::TaskThread
+
 require 'rubygems'
 require 'rubydns'
 require 'rubydns/system'
@@ -30,8 +33,14 @@ require 'rubydns/system'
 R = RubyDNS::Resolver.new(RubyDNS::System::nameservers)
 Name = Resolv::DNS::Name
 IN = Resolv::DNS::Resource::IN
+INTERFACES = [
+	[:udp, '0.0.0.0', 5300],
+#	[:tcp, '0.0.0.0', 5300],
+#	[:udp, '::0', 5300],
+#	[:tcp, '::0', 5300],
+]
 
-RubyDNS::run_server do
+RubyDNS::run_server(:listen => INTERFACES) do
 	# % dig +nocmd +noall +answer @localhost ANY dev.mydomain.org
 	# dev.mydomain.org.	16000	IN	A	10.0.0.80
 	# dev.mydomain.org.	16000	IN	MX	10 mail.mydomain.org.

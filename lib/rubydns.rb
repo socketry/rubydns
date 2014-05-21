@@ -29,10 +29,10 @@ require_relative 'rubydns/logger'
 module RubyDNS
 	# Run a server with the given rules.
 	def self.run_server (options = {}, &block)
-		supervisor = RubyDNS::RuleBasedServer.supervise(&block)
+		supervisor = RubyDNS::RuleBasedServer.supervise(options, &block)
 		
 		trap("INT") { supervisor.terminate; exit }
 		
-		server.fire(:stop)
+		sleep
 	end
 end
