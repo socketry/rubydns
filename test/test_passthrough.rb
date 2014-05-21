@@ -24,23 +24,18 @@ require 'minitest/autorun'
 
 require 'rubydns'
 
-require 'process/daemon'
-
-class PassthroughServer < Process::Daemon
+class PassthroughTest < MiniTest::Test
 	SERVER_PORTS = [[:udp, '127.0.0.1', 5340], [:tcp, '127.0.0.1', 5340]]
-	
-	def working_directory
-		File.expand_path("../tmp", __FILE__)
-	end
-	
 	Name = Resolv::DNS::Name
 	IN = Resolv::DNS::Resource::IN
 	
-	def startup
-		resolver = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
+	def setup
+		Celluloid.boot
 		
 		# Start the RubyDNS server
-		RubyDNS::run_server(:listen => SERVER_PORTS) do
+		RubyDNS::run_server(:listen => SERVER_PORTS, asynchronous: true) do
+			resolver = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
+			
 			match(/.*\.com/, IN::A) do |transaction|
 				transaction.passthrough!(resolver)
 			end
@@ -54,67 +49,34 @@ class PassthroughServer < Process::Daemon
 				transaction.fail!(:NXDomain)
 			end
 		end
-	end
-end
-
-class PassthroughTest < MiniTest::Test
-	def setup
-		PassthroughServer.controller output: File.open("/dev/null", "w")
 		
-		PassthroughServer.start
+		sleep 1
 	end
 	
 	def teardown
-		PassthroughServer.stop
+		Celluloid.shutdown
 	end
 	
 	def test_basic_dns
-		answer = nil, response = nil
+		resolver = RubyDNS::Resolver.new(SERVER_PORTS)
 		
-		assert_equal :running, PassthroughServer.status
+		response = resolver.query("google.com")
+		assert_equal 1, response.ra
 		
-		EventMachine.run do
-			resolver = RubyDNS::Resolver.new(
-				PassthroughServer::SERVER_PORTS, 
-				# Enable this to get more debug output from the resolver:
-				# :logger => Logger.new($stderr)
-			)
-			
-			resolver.query("google.com") do |response|
-				refute_kind_of RubyDNS::ResolutionFailure, response
-				
-				assert_equal 1, response.ra
-				
-				answer = response.answer.first
-				
-				EventMachine.stop
-			end
-		end
-		
-		# Check whether we got some useful records in the answer:
+		answer = response.answer.first
 		refute_nil answer
-		assert answer.count > 0
+		
+		assert answer.count > 0, "Some answers given"
 		assert answer.any? {|record| record.kind_of? Resolv::DNS::Resource::IN::A}
 	end
 	
 	def test_basic_dns_prefix
-		answer = nil
+		resolver = RubyDNS::Resolver.new(SERVER_PORTS)
 		
-		assert_equal :running, PassthroughServer.status
+		response = resolver.query("a-slashdot.org")
+		answer = response.answer.first
 		
-		EventMachine.run do
-			resolver = RubyDNS::Resolver.new(PassthroughServer::SERVER_PORTS)
-		
-			resolver.query("a-slashdot.org") do |response|
-				refute_kind_of RubyDNS::ResolutionFailure, response
-				
-				answer = response.answer.first
-				
-				EventMachine.stop
-			end
-		end
-		
-		assert answer != nil
-		assert answer.count > 0
+		refute_nil answer
+		assert answer.count > 0, "Some answers given"
 	end
 end
