@@ -79,7 +79,7 @@ module RubyDNS
 		def send_message(message)
 			request = Request.new(message, @servers, @options)
 			
-			timer = after(@options[:timeout] || 0.5) do 
+			timer = after(@options[:timeout] || 1) do 
 				@logger.debug "[#{message.id}] Request timed out!" if @logger
 				
 				request.cancel!
