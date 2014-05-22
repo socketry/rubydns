@@ -25,6 +25,7 @@ require 'rubydns'
 require 'rubydns/extensions/string'
 
 require 'process/daemon'
+require 'process/daemon/priviledges'
 
 require 'em-http'
 require 'cgi'
@@ -36,7 +37,7 @@ require 'digest/md5'
 # You might need to change the user name "daemon". This can be a user name or a user id.
 RUN_AS = "daemon"
 
-if RExec.current_user != "root"
+if Process::Daemon::Priviledges.current_user != "root"
 	$stderr.puts "Sorry, this command needs to be run as root!"
 	exit 1
 end
@@ -70,7 +71,7 @@ class WikipediaDNS < Process::Daemon
 		# Start the RubyDNS server
 		RubyDNS::run_server do
 			on(:start) do
-				RExec.change_user(RUN_AS)
+				Process::Daemon::Priviledges.change_user(RUN_AS)
 				if ARGV.include?("--debug")
 					@logger.level = Logger::DEBUG
 				else
@@ -86,17 +87,21 @@ class WikipediaDNS < Process::Daemon
 				title = match_data[1]
 				stats[:requested] += 1
 				
-				transaction.defer!
+				defer do |fiber|
+					http = EventMachine::HttpRequest.new(Wikipedia.summary_url(title)).get
 				
-				http = EventMachine::HttpRequest.new(Wikipedia.summary_url(title)).get
-		
-				http.callback do
-					summary = Wikipedia.extract_summary(http.response)
-					transaction.respond!(*summary.chunked)
-				end
+					http.callback do
+						summary = Wikipedia.extract_summary(http.response)
+						transaction.respond!(*summary.chunked)
+						
+						fiber.resume
+					end
 				
-				http.errback do
-					transaction.fail!(:ServFail)
+					http.errback do
+						transaction.fail!(:ServFail)
+						
+						fiber.resume
+					end
 				end
 			end
 			
