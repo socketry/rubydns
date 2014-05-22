@@ -24,100 +24,73 @@ require 'minitest/autorun'
 
 require 'rubydns'
 
-require 'process/daemon'
-
-class SlowServer < Process::Daemon
+class SlowServerTest < MiniTest::Test
 	SERVER_PORTS = [[:udp, '127.0.0.1', 5330], [:tcp, '127.0.0.1', 5330]]
-	
-	def working_directory
-		File.expand_path("../tmp", __FILE__)
-	end
-	
 	IN = Resolv::DNS::Resource::IN
 	
-	def startup
-		RubyDNS::run_server(:listen => SERVER_PORTS) do
+	def setup
+		Celluloid.boot
+		
+		RubyDNS::run_server(:listen => SERVER_PORTS, asynchronous: true) do
 			match(/\.*.com/, IN::A) do |transaction|
-				defer do |fiber|
-					# No domain exists, after 2 seconds:
-					EventMachine::Timer.new(2) do
-						transaction.fail!(:NXDomain)
-					
-						fiber.resume
-					end
-				end
+				@logger.info "Sleeping for 2 seconds..."
+				
+				#sleep 2
+				
+				@logger.info "Failing after 2 seconds:"
+				
+				transaction.fail!(:NXDomain)
 			end
 		
 			otherwise do |transaction|
 				transaction.fail!(:NXDomain)
 			end
 		end
-	end
-end
-
-class SlowServerTest < MiniTest::Test
-	def setup
-		SlowServer.controller output: File.open("/dev/null", "w")
-		SlowServer.start
+		
+		sleep 1
 	end
 	
 	def teardown
-		SlowServer.stop
+		Celluloid.shutdown
 	end
 	
-	IN = Resolv::DNS::Resource::IN
-	
-	def test_timeout
-		start_time = Time.now
-		end_time = nil
-		got_response = false
-		
+	def _test_timeout
 		# Because there are two servers, the total timeout is actually, 2 seconds
-		resolver = RubyDNS::Resolver.new(SlowServer::SERVER_PORTS, :timeout => 1)
+		resolver = RubyDNS::Resolver.new(SERVER_PORTS, :timeout => 1)
 		
-		EventMachine::run do
-			resolver.query("apple.com", IN::A) do |response|
-				end_time = Time.now
-				
-				got_response = response
-				
-				EventMachine::stop
-			end
+		start_time = Time.now
+		
+		assert_raises RubyDNS::ResolutionFailure do
+			response = resolver.query("apple.com", IN::A)
 		end
 		
+		end_time = Time.now
+		
 		assert_operator end_time - start_time, :<=, 2.5, "Response should fail within timeout period."
-		assert_equal RubyDNS::ResolutionFailure, got_response.class, "Response should be resolution failure."
 	end
 	
 	def test_slow_request
 		start_time = Time.now
-		end_time = nil
 		
-		resolver = RubyDNS::Resolver.new(SlowServer::SERVER_PORTS, :timeout => 10)
+		resolver = RubyDNS::Resolver.new(SERVER_PORTS, :timeout => 10)
 		
-		EventMachine::run do
-			resolver.query("apple.com", IN::A) do |response|
-				end_time = Time.now
-				
-				EventMachine::stop
-			end
+		assert_raises RubyDNS::ResolutionFailure do
+			response = resolver.query("apple.com", IN::A)
 		end
+		
+		end_time = Time.now
 		
 		assert_operator end_time - start_time, :>, 2.0, "Response should fail within timeout period."
 	end
 	
-	def test_normal_request
+	def _test_normal_request
 		start_time = Time.now
 		end_time = nil
 		
-		resolver = RubyDNS::Resolver.new(SlowServer::SERVER_PORTS, :timeout => 10)
+		resolver = RubyDNS::Resolver.new(SERVER_PORTS, :timeout => 10)
 		
-		EventMachine::run do
-			resolver.query("oriontransfer.org", IN::A) do |response|
-				end_time = Time.now
-				
-				EventMachine::stop
-			end
+		assert_raises RubyDNS::ResolutionFailure do
+			resolver.query("oriontransfer.org", IN::A)
 		end
 		
 		assert_operator end_time - start_time, :<, 2.0, "Response should fail immediately"
