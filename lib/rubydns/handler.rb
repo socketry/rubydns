@@ -111,7 +111,7 @@ module RubyDNS
 			
 			@socket.send(output_data, 0, remote_host, remote_port)
 		rescue EOFError => error
-			@logger.warn "TCP session ended prematurely!"
+			@logger.warn "UDP session ended prematurely!"
 		end
 	end
 	
