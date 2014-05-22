@@ -92,9 +92,9 @@ module RubyDNS
 					
 					transaction.process
 				end
-			rescue
+			rescue => error
 				@logger.error {"[#{query.id}] Exception thrown while processing #{transaction}!"}
-				RubyDNS.log_exception(@logger, $!)
+				RubyDNS.log_exception(@logger, error)
 			
 				answer.rcode = Resolv::DNS::RCode::ServFail
 			end
