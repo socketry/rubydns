@@ -44,8 +44,6 @@ module RubyDNS
 		#	end
 		#
 		def initialize(options = {})
-			puts options.inspect
-			
 			@handlers = []
 			
 			@logger = options[:logger] || Celluloid.logger
@@ -86,21 +84,21 @@ module RubyDNS
 			
 			begin
 				query.question.each do |question, resource_class|
-					@logger.debug {"[#{query.id}] Processing question #{question} #{resource_class}..."}
+					@logger.debug {"<#{query.id}> Processing question #{question} #{resource_class}..."}
 			
 					transaction = Transaction.new(self, query, question, resource_class, answer, options)
 					
 					transaction.process
 				end
 			rescue => error
-				@logger.error {"[#{query.id}] Exception thrown while processing #{transaction}!"}
+				@logger.error {"<#{query.id}> Exception thrown while processing #{transaction}!"}
 				RubyDNS.log_exception(@logger, error)
 			
 				answer.rcode = Resolv::DNS::RCode::ServFail
 			end
 			
 			end_time = Time.now
-			@logger.debug {"[#{query.id}] Time to process request: #{end_time - start_time}s"}
+			@logger.debug {"<#{query.id}> Time to process request: #{end_time - start_time}s"}
 			
 			return answer
 		end
@@ -126,7 +124,7 @@ module RubyDNS
 			
 			# Setup server sockets
 			@interfaces.each do |spec|
-				@logger.info "Listening on #{spec.join(':')}"
+				@logger.info "<> Listening on #{spec.join(':')}"
 				
 				if spec[0] == :udp
 					link UDPHandler.supervise(self, spec[1], spec[2])
@@ -164,9 +162,9 @@ module RubyDNS
 			end
 			
 			# Invoke the rule, if it matches the incoming request, it is evaluated and returns `true`, otherwise returns `false`.
-			def call(server, name, resource_class, *args)
+			def call(server, name, resource_class, transaction)
 				unless match(name, resource_class)
-					server.logger.debug "Resource class #{resource_class} failed to match #{@pattern[1].inspect}!"
+					server.logger.debug "<#{transaction.query.id}> Resource class #{resource_class} failed to match #{@pattern[1].inspect}!"
 					
 					return false
 				end
@@ -177,31 +175,31 @@ module RubyDNS
 					match_data = @pattern[0].match(name)
 					
 					if match_data
-						server.logger.debug "Regexp pattern matched with #{match_data.inspect}."
+						server.logger.debug "<#{transaction.query.id}> Regexp pattern matched with #{match_data.inspect}."
 						
-						@callback[*args, match_data]
+						@callback[transaction, match_data]
 						
 						return true
 					end
 				when String
 					if @pattern[0] == name
-						server.logger.debug "String pattern matched."
+						server.logger.debug "<#{transaction.query.id}> String pattern matched."
 						
-						@callback[*args]
+						@callback[transaction]
 						
 						return true
 					end
 				else
 					if (@pattern[0].call(name, resource_class) rescue false)
-						server.logger.debug "Callable pattern matched."
+						server.logger.debug "<#{transaction.query.id}> Callable pattern matched."
 						
-						@callback[*args]
+						@callback[transaction]
 						
 						return true
 					end
 				end
 				
-				server.logger.debug "No pattern matched."
+				server.logger.debug "<#{transaction.query.id}> No pattern matched."
 				
 				# We failed to match the pattern.
 				return false
@@ -281,22 +279,22 @@ module RubyDNS
 		end
 		
 		# Give a name and a record type, try to match a rule and use it for processing the given arguments.
-		def process(name, resource_class, *args)
-			@logger.debug {"Searching for #{name} #{resource_class.name}"}
+		def process(name, resource_class, transaction)
+			@logger.debug {"<#{transaction.query.id}> Searching for #{name} #{resource_class.name}"}
 			
 			@rules.each do |rule|
-				@logger.debug {"Checking rule #{rule}..."}
+				@logger.debug {"<#{transaction.query.id}> Checking rule #{rule}..."}
 				
 				catch (:next) do
 					# If the rule returns true, we assume that it was successful and no further rules need to be evaluated.
-					return if rule.call(self, name, resource_class, *args)
+					return if rule.call(self, name, resource_class, transaction)
 				end
 			end
 			
 			if @otherwise
-				@otherwise.call(*args)
+				@otherwise.call(transaction)
 			else
-				@logger.warn "Failed to handle #{name} #{resource_class.name}!"
+				@logger.warn "<#{transaction.query.id}> Failed to handle #{name} #{resource_class.name}!"
 			end
 		end
 	end

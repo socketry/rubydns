@@ -40,16 +40,16 @@ module RubyDNS
 		end
 		
 		def process_query(data, options)
-			@logger.debug "Receiving incoming query (#{data.bytesize} bytes)..."
+			@logger.debug "<> Receiving incoming query (#{data.bytesize} bytes)..."
 			query = nil
 
 			begin
 				query = RubyDNS::decode_message(data)
 
 				return @server.process_query(query, options)
-			rescue => error
-				@logger.error "Error processing request!"
-				@logger.error "#{error.class}: #{error.message}"
+			rescue Exception => error
+				@logger.error "<> Error processing request!"
+				@logger.error "<> #{error.class}: #{error.message}"
 
 				error.backtrace.each { |line| @logger.error line }
 
@@ -84,23 +84,17 @@ module RubyDNS
 			loop { handle_connection }
 		end
 		
-		def handle_connection
-			@logger.debug "Waiting for incoming UDP packet #{@socket.inspect}..."
-			
-			input_data, (_, remote_port, remote_host) = @socket.recvfrom(UDP_TRUNCATION_SIZE)
-			
-			@logger.debug "Got incoming packet of size #{input_data.size} bytes..."
-			
+		def respond(input_data, remote_host, remote_port)
 			options = {peer: remote_host}
 			
 			answer = process_query(input_data, options)
 			
 			output_data = answer.encode
 			
-			@logger.debug "Writing response to client (#{output_data.bytesize} bytes) via UDP..."
+			@logger.debug "<#{answer.id}> Writing response to client (#{output_data.bytesize} bytes) via UDP..."
 			
 			if output_data.bytesize > UDP_TRUNCATION_SIZE
-				@logger.warn "Response via UDP was larger than #{UDP_TRUNCATION_SIZE}!"
+				@logger.warn "<#{answer.id}>Response via UDP was larger than #{UDP_TRUNCATION_SIZE}!"
 				
 				# Reencode data with truncation flag marked as true:
 				truncation_error = Resolv::DNS::Message.new(answer.id)
@@ -111,7 +105,17 @@ module RubyDNS
 			
 			@socket.send(output_data, 0, remote_host, remote_port)
 		rescue EOFError => error
-			@logger.warn "UDP session ended prematurely!"
+			@logger.warn "<> UDP session ended prematurely!"
+		end
+		
+		def handle_connection
+			# @logger.debug "Waiting for incoming UDP packet #{@socket.inspect}..."
+			
+			input_data, (_, remote_port, remote_host) = @socket.recvfrom(UDP_TRUNCATION_SIZE)
+			
+			async.respond(input_data, remote_host, remote_port)
+		rescue EOFError => error
+			@logger.warn "<> UDP session ended prematurely!"
 		end
 	end
 	
@@ -123,7 +127,7 @@ module RubyDNS
 		end
 		
 		def run
-			@logger.debug "Waiting for incoming TCP connections #{@socket.inspect}..."
+			# @logger.debug "Waiting for incoming TCP connections #{@socket.inspect}..."
 			loop { async.handle_connection @socket.accept }
 		end
 		
@@ -137,11 +141,11 @@ module RubyDNS
 			
 			length = StreamTransport.write_message(socket, answer)
 			
-			@logger.debug "Wrote #{length} bytes via TCP..."
+			@logger.debug "<#{answer.id}> Wrote #{length} bytes via TCP..."
 		rescue EOFError => error
-			@logger.warn "TCP session ended prematurely!"
+			@logger.warn "<> TCP session ended prematurely!"
 		rescue Resolv::DNS::DecodeError
-			@logger.warn "Could not decode incoming data!"
+			@logger.warn "<> Could not decode incoming data!"
 		ensure
 			socket.close
 		end

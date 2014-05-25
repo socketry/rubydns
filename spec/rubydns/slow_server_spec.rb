@@ -20,63 +20,68 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'minitest/autorun'
-
 require 'rubydns'
 
-class PassthroughTest < MiniTest::Test
-	SERVER_PORTS = [[:udp, '127.0.0.1', 5340], [:tcp, '127.0.0.1', 5340]]
-	Name = Resolv::DNS::Name
-	IN = Resolv::DNS::Resource::IN
+describe "RubyDNS Slow Server" do
+	self::SERVER_PORTS = [[:udp, '127.0.0.1', 5330], [:tcp, '127.0.0.1', 5330]]
+	self::IN = Resolv::DNS::Resource::IN
 	
-	def setup
+	before(:all) do
+		Celluloid.shutdown
 		Celluloid.boot
 		
-		# Start the RubyDNS server
-		RubyDNS::run_server(:listen => SERVER_PORTS, asynchronous: true) do
-			resolver = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
-			
-			match(/.*\.com/, IN::A) do |transaction|
-				transaction.passthrough!(resolver)
+		@server = RubyDNS::run_server(:listen => SERVER_PORTS, asynchronous: true) do
+			match(/\.*.com/, IN::A) do |transaction|
+				sleep 2
+				
+				transaction.fail!(:NXDomain)
 			end
 
-			match(/a-(.*\.org)/) do |transaction, match_data|
-				transaction.passthrough!(resolver, :name => match_data[1])
-			end
-
-			# Default DNS handler
 			otherwise do |transaction|
 				transaction.fail!(:NXDomain)
 			end
 		end
-		
-		sleep 1
 	end
 	
-	def teardown
-		Celluloid.shutdown
+	it "get no answer after 2 seconds" do
+		start_time = Time.now
+		
+		resolver = RubyDNS::Resolver.new(SERVER_PORTS, :timeout => 10)
+		
+		response = resolver.query("apple.com", IN::A)
+		
+		expect(response.answer.length).to be == 0
+		
+		end_time = Time.now
+		
+		expect(end_time - start_time).to be_within(0.1).of(2.0)
 	end
 	
-	def test_basic_dns
-		resolver = RubyDNS::Resolver.new(SERVER_PORTS)
+	it "times out after 1 second" do
+		start_time = Time.now
 		
-		response = resolver.query("google.com")
-		assert_equal 1, response.ra
+		resolver = RubyDNS::Resolver.new(SERVER_PORTS, :timeout => 0.5)
 		
-		answer = response.answer.first
-		refute_nil answer
+		response = resolver.query("apple.com", IN::A)
 		
-		assert answer.count > 0, "Some answers given"
-		assert answer.any? {|record| record.kind_of? Resolv::DNS::Resource::IN::A}
+		expect(response).to be nil
+		
+		end_time = Time.now
+		
+		expect(end_time - start_time).to be_within(0.1).of(1.0)
 	end
 	
-	def test_basic_dns_prefix
-		resolver = RubyDNS::Resolver.new(SERVER_PORTS)
+	it "gets no answer immediately" do
+		start_time = Time.now
 		
-		response = resolver.query("a-slashdot.org")
-		answer = response.answer.first
+		resolver = RubyDNS::Resolver.new(SERVER_PORTS, :timeout => 0.5)
 		
-		refute_nil answer
-		assert answer.count > 0, "Some answers given"
+		response = resolver.query("oriontransfer.org", IN::A)
+		
+		expect(response.answer.length).to be 0
+		
+		end_time = Time.now
+		
+		expect(end_time - start_time).to be_within(0.1).of(0.0)
 	end
 end

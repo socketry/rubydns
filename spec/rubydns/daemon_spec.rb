@@ -20,10 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'minitest/autorun'
-
 require 'rubydns'
-
 require 'process/daemon'
 
 class BasicTestServer < Process::Daemon
@@ -36,6 +33,8 @@ class BasicTestServer < Process::Daemon
 	end
 
 	def startup
+		Celluloid.boot
+		
 		# Start the RubyDNS server
 		RubyDNS::run_server(:listen => SERVER_PORTS) do
 			match("test.local", IN::A) do |transaction|
@@ -47,7 +46,7 @@ class BasicTestServer < Process::Daemon
 			end
 
 			match(/peername/, IN::A) do |transaction|
-				transaction.respond!(transaction[:connection].peername[1])
+				transaction.respond!(transaction[:peer])
 			end
 
 			# Default DNS handler
@@ -58,52 +57,53 @@ class BasicTestServer < Process::Daemon
 	end
 end
 
-class DaemonTest < MiniTest::Test
-	def setup
+describe "RubyDNS Daemonized Server" do
+	before(:all) do
 		Celluloid.shutdown
-		Celluloid.boot
 		
-		BasicTestServer.controller output: File.open("/dev/null", "w")
-		
+		# Trying to fork with Celluloid running is a recipe for disaster.
+		# BasicTestServer.controller output: $stderr
 		BasicTestServer.start
+		
+		Celluloid.boot
 	end
 	
-	def teardown
+	after(:all) do
 		BasicTestServer.stop
 	end
 	
-	def test_basic_dns
-		assert_equal :running, BasicTestServer.status
+	it "should resolve local domain correctly" do
+		expect(BasicTestServer.status).to be == :running
 		
 		resolver = RubyDNS::Resolver.new(BasicTestServer::SERVER_PORTS)
 	
 		response = resolver.query("test.local")
 		answer = response.answer.first
 		
-		assert_equal "test.local", answer[0].to_s
-		assert_equal "192.168.1.1", answer[2].address.to_s
+		expect(answer[0].to_s).to be == "test.local"
+		expect(answer[2].address.to_s).to be == "192.168.1.1"
 	end
 	
-	def test_pattern_matching
-		assert_equal :running, BasicTestServer.status
-
+	it "should pattern match correctly" do
+		expect(BasicTestServer.status).to be == :running
+		
 		resolver = RubyDNS::Resolver.new(BasicTestServer::SERVER_PORTS)
 
 		response = resolver.query("foobar")
 		answer = response.answer.first
 		
-		assert_equal "foobar", answer[0].to_s
-		assert_equal "192.168.1.2", answer[2].address.to_s
+		expect(answer[0].to_s).to be == "foobar"
+		expect(answer[2].address.to_s).to be == "192.168.1.2"
 	end
 	
-	def test_peername
-		assert_equal :running, BasicTestServer.status
-
+	it "should give peer ip address" do
+		expect(BasicTestServer.status).to be == :running
+		
 		resolver = RubyDNS::Resolver.new(BasicTestServer::SERVER_PORTS)
 
 		response = resolver.query("peername")
 		answer = response.answer.first
 		
-		assert_equal "127.0.0.1", answer[2].address.to_s
+		expect(answer[2].address.to_s).to be == "127.0.0.1"
 	end
 end

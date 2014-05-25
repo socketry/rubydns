@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-# Copyright, 2009, 2012, by Samuel G. D. Williams. <http://www.codeotaku.com>
+# Copyright, 2012, by Samuel G. D. Williams. <http://www.codeotaku.com>
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,46 +20,42 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'process/daemon'
-
 require 'rubydns'
-require 'rubydns/system'
+require 'rubydns/extensions/string'
 
-INTERFACES = [
-	[:udp, "0.0.0.0", 5300]
-]
-
-class DroppingDaemon < Process::Daemon
-	Name = Resolv::DNS::Name
-	IN = Resolv::DNS::Resource::IN
-	R = RubyDNS::Resolver.new(RubyDNS::System::nameservers)
-	
-	def startup
-		RubyDNS::run_server(:listen => INTERFACES) do
-			# Fail the resolution of certain domains ;)
-			match(/(m?i?c?r?o?s?o?f?t)/) do |transaction, match_data|
-				if match_data[1].size > 7
-					logger.info "Dropping domain MICROSOFT..."
-					transaction.fail!(:NXDomain)
-				else
-					# Pass the request to the otherwise handler
-					false
+module RubyDNS
+	module TruncationServer
+		SERVER_PORTS = [[:udp, '127.0.0.1', 5520], [:tcp, '127.0.0.1', 5520]]
+		IN = Resolv::DNS::Resource::IN
+		
+		describe "RubyDNS Truncation Server" do
+			before(:all) do
+				Celluloid.shutdown
+				Celluloid.boot
+		
+				# Start the RubyDNS server
+				RubyDNS::run_server(:listen => SERVER_PORTS, asynchronous: true) do
+					match("truncation", IN::TXT) do |transaction|
+						text = "Hello World! " * 100
+						transaction.respond!(*text.chunked)
+					end
+			
+					# Default DNS handler
+					otherwise do |transaction|
+						transaction.fail!(:NXDomain)
+					end
 				end
 			end
-			
-			# Hmm....
-			match(/^(.+\.)?sco\./) do |transaction|
-				logger.info "Dropping domain SCO..."
-				transaction.fail!(:NXDomain)
-			end
-
-			# Default DNS handler
-			otherwise do |transaction|
-				logger.info "Passing DNS request upstream..."
-				transaction.passthrough!(R)
+	
+			it "should use tcp because of large response" do
+				resolver = RubyDNS::Resolver.new(SERVER_PORTS)
+		
+				response = resolver.query("truncation", IN::TXT)
+		
+				text = response.answer.first
+		
+				expect(text[2].strings.join).to be == ("Hello World! " * 100)
 			end
 		end
-  end
+	end
 end
-
-DroppingDaemon.daemonize

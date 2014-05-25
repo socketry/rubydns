@@ -20,45 +20,57 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'minitest/autorun'
-
 require 'rubydns'
-require 'rubydns/extensions/string'
 
-class TruncationTest < MiniTest::Test
-	SERVER_PORTS = [[:udp, '127.0.0.1', 5320], [:tcp, '127.0.0.1', 5320]]
-	IN = Resolv::DNS::Resource::IN
+describe "RubyDNS Passthrough Server" do
+	self::SERVER_PORTS = [[:udp, '127.0.0.1', 5340], [:tcp, '127.0.0.1', 5340]]
+	self::Name = Resolv::DNS::Name
+	self::IN = Resolv::DNS::Resource::IN
 	
-	def setup
+	before(:all) do
+		Celluloid.shutdown
 		Celluloid.boot
 		
 		# Start the RubyDNS server
-		RubyDNS::run_server(:listen => SERVER_PORTS, asynchronous: true) do
-			match("truncation", IN::TXT) do |transaction|
-				text = "Hello World! " * 100
-				transaction.respond!(*text.chunked)
-			end
+		@server = RubyDNS::run_server(:listen => SERVER_PORTS, asynchronous: true) do
+			resolver = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
 			
+			match(/.*\.com/, IN::A) do |transaction|
+				transaction.passthrough!(resolver)
+			end
+
+			match(/a-(.*\.org)/) do |transaction, match_data|
+				transaction.passthrough!(resolver, :name => match_data[1])
+			end
+
 			# Default DNS handler
 			otherwise do |transaction|
 				transaction.fail!(:NXDomain)
 			end
 		end
-		
-		sleep 1
 	end
 	
-	def teardown
-		Celluloid.shutdown
-	end
-	
-	def test_tcp_failover
+	it "should resolve domain correctly" do
 		resolver = RubyDNS::Resolver.new(SERVER_PORTS)
 		
-		response = resolver.query("truncation", IN::TXT)
-
-		text = response.answer.first
+		response = resolver.query("google.com")
+		expect(response.ra).to be == 1
 		
-		assert_equal "Hello World! " * 100, text[2].strings.join
+		answer = response.answer.first
+		expect(answer).not_to be == nil
+		expect(answer.count).to be > 0
+		
+		addresses = answer.select {|record| record.kind_of? Resolv::DNS::Resource::IN::A}
+		expect(addresses.size).to be > 0
+	end
+	
+	it "should resolve prefixed domain correctly" do
+		resolver = RubyDNS::Resolver.new(SERVER_PORTS)
+		
+		response = resolver.query("a-slashdot.org")
+		answer = response.answer.first
+		
+		expect(answer).not_to be == nil
+		expect(answer.count).to be > 0
 	end
 end

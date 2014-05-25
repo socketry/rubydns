@@ -33,6 +33,10 @@ module RubyDNS
 		
 		trap("INT") { supervisor.terminate; exit }
 		
-		sleep unless options[:asynchronous]
+		if options[:asynchronous]
+			return supervisor
+		else
+			sleep
+		end
 	end
 end

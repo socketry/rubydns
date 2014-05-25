@@ -56,8 +56,6 @@ StackProf.run(mode: :cpu, out: 'rubydns.stackprof') do
 		otherwise do |transaction|
 			logger.info "Passing DNS request upstream..."
 			transaction.fail!(:NXDomain)
-			
-			EventMachine::stop
 		end
 	end
 end

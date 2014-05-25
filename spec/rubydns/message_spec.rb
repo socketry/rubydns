@@ -20,17 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'minitest/autorun'
-
 require 'rubydns'
+require 'base64'
 
-class MessageTest < MiniTest::Test
-	def setup
-	end
-	
-	def teardown
-	end
-
+describe RubyDNS::Message do
 	def hex2bin(hexstring)
 		ret = "\x00" * (hexstring.length / 2)
 		ret.force_encoding("BINARY")
@@ -42,24 +35,32 @@ class MessageTest < MiniTest::Test
 		end
 		ret
 	end
-
-	def test_good_decode
-		data = hex2bin("1d008180000100080000000103777777057961686f6f03636f6d0000010001c00c000500010000012c000f0666642d667033037767310162c010c02b000500010000012c00090664732d667033c032c046000500010000003c00150e64732d616e792d6670332d6c666203776131c036c05b000500010000012c00120f64732d616e792d6670332d7265616cc06ac07c000100010000003c0004628afc1ec07c000100010000003c0004628bb495c07c000100010000003c0004628bb718c07c000100010000003c0004628afd6d0000291000000000000000")
+	
+	it "should be decoded correctly" do
+		data = Base64.decode64(<<-EOF)
+		HQCBgAABAAgAAAABA3d3dwV5YWhvbwNjb20AAAEAAcAMAAUAAQAAASwADwZm
+		ZC1mcDMDd2cxAWLAEMArAAUAAQAAASwACQZkcy1mcDPAMsBGAAUAAQAAADwA
+		FQ5kcy1hbnktZnAzLWxmYgN3YTHANsBbAAUAAQAAASwAEg9kcy1hbnktZnAz
+		LXJlYWzAasB8AAEAAQAAADwABGKK/B7AfAABAAEAAAA8AARii7SVwHwAAQAB
+		AAAAPAAEYou3GMB8AAEAAQAAADwABGKK/W0AACkQAAAAAAAAAA==
+		EOF
 		
-		decoded = RubyDNS.decode_message(data)
-		assert_equal(RubyDNS::Message, decoded.class)
-		assert_equal(0x1d00, decoded.id)
-		assert_equal(1, decoded.question.count)
-		assert_equal(8, decoded.answer.count)
-		assert_equal(0, decoded.authority.count)
-		assert_equal(1, decoded.additional.count)
+		message = RubyDNS::decode_message(data)
+		expect(message.class).to be == RubyDNS::Message
+		expect(message.id).to be == 0x1d00
+		
+		expect(message.question.count).to be == 1
+		expect(message.answer.count).to be == 8
+		expect(message.authority.count).to be == 0
+		expect(message.additional.count).to be == 1
 	end
 	
-	def test_bad_AAAA_length
-		data = hex2bin("ea9e8180000100010000000108626169636169636e03636f6d00001c0001c00c001c00010000011e000432177b770000291000000000000000")
+	it "should fail to decode due to bad AAAA length" do
+		data = Base64.decode64(<<-EOF)
+		6p6BgAABAAEAAAABCGJhaWNhaWNuA2NvbQAAHAABwAwAHAABAAABHgAEMhd7
+		dwAAKRAAAAAAAAAA
+		EOF
 		
-		assert_raises Resolv::DNS::DecodeError do
-			RubyDNS.decode_message(data)
-		end
+		expect{RubyDNS::decode_message(data)}.to raise_error(RubyDNS::DecodeError)
 	end
 end

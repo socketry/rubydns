@@ -4,5 +4,5 @@ source 'https://rubygems.org'
 gemspec
 
 group :test do
-	gem "minitest"
+	gem "rspec", "~> 3.0.0.rc1"
 end

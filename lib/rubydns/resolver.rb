@@ -59,10 +59,10 @@ module RubyDNS
 			message.rd = 1
 			message.add_question name, resource_class
 			
-			send_message(message)
+			dispatch_request(message)
 		end
 		
-		# Yields a list of `Resolv::IPv4` and `Resolv::IPv6` addresses for the given `name` and `resource_class`.
+		# Yields a list of `Resolv::IPv4` and `Resolv::IPv6` addresses for the given `name` and `resource_class`. Throws a ResolutionFailure if no severs respond.
 		def addresses_for(name, resource_class = Resolv::DNS::Resource::IN::A)
 			response = query(name, resource_class)
 			# Resolv::DNS::Name doesn't retain the trailing dot.
@@ -72,50 +72,112 @@ module RubyDNS
 			when Message
 				response.answer.select{|record| record[0].to_s == name}.collect{|record| record[2].address}
 			else
-				nil
+				abort ResolutionFailure.new("No server replied.")
 			end
 		end
-
-		def send_message(message)
-			request = Request.new(message, @servers, @options)
+		
+		def request_timeout
+			@options[:timeout] || 1
+		end
+		
+		def dispatch_request(message)
+			request = Request.new(message, @servers)
 			
-			timer = after(@options[:timeout] || 1) do 
+			timer = after(request_timeout) do
 				@logger.debug "[#{message.id}] Request timed out!" if @logger
-				
-				request.cancel!
+			
+				request.cancel
 			end
 			
-			response = nil
-			
-			loop do
-				timer.reset
+			request.each do |server|
+				@logger.debug "[#{message.id}] Sending request to server #{server.inspect}" if @logger
 				
 				begin
-					response = request.try_next_server!
+					response = try_server(request, server)
 					
-					if response.tc != 0
-						@logger.warn "[#{message.id}] Received truncated response!" if @logger
-					elsif response.id != message.id
-						@logger.warn "[#{message.id}] Received response with incorrect message id: #{response.id}" if @logger
-					else
-						@logger.debug "[#{message.id}] Received valid response #{response.inspect}" if @logger
-					
+					if valid_response(message, response)
 						return response
 					end
 				rescue IOError
 					@logger.warn "[#{message.id}] Error while reading from network!" if @logger
-					raise
 				end
+				
+				timer.reset
 			end
+			
+			return nil
+		rescue ResolutionFailure => failure
+			abort failure
 		ensure
 			timer.cancel
 		end
 		
 		private
 		
+		def try_server(request, server)
+			case server[0]
+			when :udp
+				try_udp_server(request, server[1], server[2])
+			when :tcp
+				try_tcp_server(request, server[1], server[2])
+			else
+				raise InvalidProtocolError.new(server)
+			end
+		end
+		
+		def valid_response(message, response)
+			if response.tc != 0
+				@logger.warn "[#{message.id}] Received truncated response!" if @logger
+			elsif response.id != message.id
+				@logger.warn "[#{message.id}] Received response with incorrect message id: #{response.id}" if @logger
+			else
+				@logger.debug "[#{message.id}] Received valid response #{response.inspect}" if @logger
+		
+				return true
+			end
+			
+			return false
+		end
+		
+		def try_udp_server(request, host, port)
+			request.socket = Celluloid::IO::UDPSocket.new
+			
+			request.socket.send(request.packet, 0, host, port)
+			
+			data, (_, remote_port) = request.socket.recvfrom(UDP_TRUNCATION_SIZE)
+			# Need to check host, otherwise security issue.
+			
+			# May indicate some kind of spoofing attack:
+			if port != remote_port
+				raise InvalidResponseError.new("Data was not received from correct remote port (#{port} != #{remote_port})")
+			end
+			
+			message = RubyDNS::decode_message(data)
+		ensure
+			request.finish
+		end
+		
+		def try_tcp_server(request, host, port)
+			request.socket = Celluloid::IO::TCPSocket.new(host, port)
+			
+			StreamTransport.write_chunk(request.socket, request.packet)
+			
+			input_data = StreamTransport.read_chunk(request.socket)
+			
+			message = RubyDNS::decode_message(input_data)
+		rescue Errno::ECONNREFUSED => error
+			raise IOError.new(error.message)
+		rescue Errno::EPIPE => error
+			raise IOError.new(error.message)
+		rescue Errno::ECONNRESET => error
+			raise IOError.new(error.message)
+		ensure
+			request.finish
+		end
+		
 		# Manages a single DNS question message across one or more servers.
 		class Request
-			def initialize(message, servers, options = {}, &block)
+			def initialize(message, servers)
 				@message = message
 				@packet = message.encode
 				
@@ -125,83 +187,36 @@ module RubyDNS
 				if @packet.bytesize > UDP_TRUNCATION_SIZE
 					@servers.delete_if{|server| server[0] == :udp}
 				end
-				
-				@logger = options[:logger] || Celluloid.logger
 			end
 			
 			attr :message
 			attr :packet
 			attr :logger
 			
-			def servers_available?
-				@servers.size > 0
-			end
+			attr_accessor :socket
 			
-			def try_next_server!
-				if @servers.size > 0
-					server = @servers.shift
+			def each(&block)
+				@servers.each do |server|
+					next if @packet.bytesize > UDP_TRUNCATION_SIZE
 					
-					@logger.debug "[#{@message.id}] Sending request to server #{server.inspect}" if @logger
-					
-					# We make requests one at a time to the given server, naturally the servers are ordered in terms of priority.
-					response = case server[0]
-					when :udp
-						try_udp_server(server[1], server[2])
-					when :tcp
-						try_tcp_server(server[1], server[2])
-					else
-						raise InvalidProtocolError.new(server)
-					end
-					
-					@logger.debug "[#{@message.id}] Got response #{response}" if @logger
-					
-					return response
-				else
-					raise ResolutionFailure.new("No available servers responded to the request.")
+					yield server
 				end
 			end
 			
-			def cancel!
-				finish_request
-			end
-			
-			private
-			
-			# Closes any connections and cancels any timeout.
-			def finish_request
-				# Cancel an existing request if it is in flight:
+			def finish
 				if @socket
 					@socket.close
 					@socket = nil
 				end
 			end
 			
-			def try_udp_server(host, port)
-				@socket = Celluloid::IO::UDPSocket.new
-				@socket.send(self.packet, 0, host, port)
-				
-				data, (_, remote_port) = @socket.recvfrom(UDP_TRUNCATION_SIZE)
-				# Need to check host, otherwise security issue.
-				
-				if port != remote_port
-					raise InvalidResponseError.new("Data was not received from correct remote port (#{port} != #{remote_port})")
-				end
-				
-				message = RubyDNS::decode_message(data)
-			ensure
-				finish_request
+			def cancel
+				finish
 			end
-			
-			def try_tcp_server(host, port)
-				@socket = Celluloid::IO::TCPSocket.new(host, port)
-				
-				StreamTransport.write_chunk(@socket, self.packet)
-				
-				input_data = StreamTransport.read_chunk(@socket)
-				
-				message = RubyDNS::decode_message(input_data)
-			ensure
-				finish_request
+
+			def update_id!(id)
+				@message.id = id
+				@packet = @message.encode
 			end
 		end
 	end
