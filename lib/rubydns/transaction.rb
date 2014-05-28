@@ -20,10 +20,6 @@
 
 module RubyDNS
 	
-	# Indicates that the passthrough of the request failed for some reason.
-	class PassthroughError < StandardError
-	end
-	
 	# This class provides all details of a single DNS question and response. This is used by the DSL to provide DNS related functionality.
 	# 
 	# The main functions to complete the trasaction are: {#append!} (evaluate a new query and append the results), {#passthrough!} (pass the query to an upstream server), {#respond!} (compute a specific response) and {#fail!} (fail with an error code).
@@ -81,22 +77,21 @@ module RubyDNS
 		#
 		# If recursion is not requested, the result is `fail!(:Refused)`. This check is ignored if an explicit `options[:name]` or `options[:force]` is given.
 		#
-		# If the resolver does not respond, the result is `fail!(:NXDomain)`.
+		# If the resolver can't reach upstream servers, `fail!(:ServFail)` is invoked.
 		def passthrough!(resolver, options = {}, &block)
 			if @query.rd || options[:force] || options[:name]
-				passthrough(resolver, options) do |response|
-					if block_given?
-						yield response
-					end
-					
+				response = passthrough(resolver, options)
+				
+				if response
 					# Recursion is available and is being used:
 					# See issue #26 for more details.
 					@response.ra = 1
-					
 					@response.merge!(response)
+				else
+					fail!(:ServFail)
 				end
 			else
-				raise PassthroughError.new("Request is not recursive!")
+				fail!(:Refused)
 			end
 		end
 		
@@ -105,18 +100,11 @@ module RubyDNS
 		# A block must be supplied, and provided a valid response is received from the upstream server, this function yields with the reply and reply_name.
 		#
 		# If `options[:name]` is provided, this overrides the default query name sent to the upstream server. The same logic applies to `options[:resource_class]`.
-		def passthrough(resolver, options = {}, &block)
+		def passthrough(resolver, options = {})
 			query_name = options[:name] || name
 			query_resource_class = options[:resource_class] || resource_class
 			
-			response = resolver.query(query_name, query_resource_class)
-			
-			case response
-			when RubyDNS::Message
-				yield response
-			else
-				fail!(:ServFail)
-			end
+			resolver.query(query_name, query_resource_class)
 		end
 		
 		# Respond to the given query with a resource record. The arguments to this function depend on the `resource_class` requested. This function instantiates the resource class with the supplied arguments, and then passes it to {#append!}.
