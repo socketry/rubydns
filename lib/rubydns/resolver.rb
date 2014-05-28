@@ -98,6 +98,8 @@ module RubyDNS
 					if valid_response(message, response)
 						return response
 					end
+				rescue Resolv::DNS::DecodeError
+					@logger.warn "[#{message.id}] Error while decoding data from network!" if @logger
 				rescue IOError
 					@logger.warn "[#{message.id}] Error while reading from network!" if @logger
 				end
