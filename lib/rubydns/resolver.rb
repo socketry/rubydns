@@ -131,9 +131,9 @@ module RubyDNS
 			if response.tc != 0
 				@logger.warn "[#{message.id}] Received truncated response!" if @logger
 			elsif response.id != message.id
-				@logger.warn "[#{message.id}] Received response with incorrect message id: #{response.id}" if @logger
+				@logger.warn "[#{message.id}] Received response with incorrect message id: #{response.id}!" if @logger
 			else
-				@logger.debug "[#{message.id}] Received valid response #{response.inspect}" if @logger
+				@logger.debug "[#{message.id}] Received valid response with #{response.answer.count} answer(s)." if @logger
 		
 				return true
 			end
