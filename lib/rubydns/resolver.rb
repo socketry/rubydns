@@ -62,7 +62,7 @@ module RubyDNS
 			dispatch_request(message)
 		end
 		
-		# Yields a list of `Resolv::IPv4` and `Resolv::IPv6` addresses for the given `name` and `resource_class`. Throws a ResolutionFailure if no severs respond.
+		# Yields a list of `Resolv::IPv4` and `Resolv::IPv6` addresses for the given `name` and `resource_class`. Raises a ResolutionFailure if no severs respond.
 		def addresses_for(name, resource_class = Resolv::DNS::Resource::IN::A)
 			response = query(name, resource_class)
 			# Resolv::DNS::Name doesn't retain the trailing dot.
@@ -80,6 +80,7 @@ module RubyDNS
 			@options[:timeout] || 1
 		end
 		
+		# Send the message to available servers. If no servers respond correctly, nil is returned. This result indicates a failure of the resolver to correctly contact any server and get a valid response.
 		def dispatch_request(message)
 			request = Request.new(message, @servers)
 			
@@ -98,18 +99,18 @@ module RubyDNS
 					if valid_response(message, response)
 						return response
 					end
-				rescue Resolv::DNS::DecodeError
-					@logger.warn "[#{message.id}] Error while decoding data from network!" if @logger
+				rescue InvalidResponseError
+					@logger.warn "[#{message.id}] Invalid response from network: #{$!}!" if @logger
+				rescue DecodeError
+					@logger.warn "[#{message.id}] Error while decoding data from network: #{$!}!" if @logger
 				rescue IOError
-					@logger.warn "[#{message.id}] Error while reading from network!" if @logger
+					@logger.warn "[#{message.id}] Error while reading from network: #{$!}!" if @logger
 				end
 				
 				timer.reset
 			end
 			
 			return nil
-		rescue ResolutionFailure => failure
-			abort failure
 		ensure
 			timer.cancel
 		end
