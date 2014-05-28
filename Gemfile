@@ -4,7 +4,3 @@ source 'https://rubygems.org'
 gemspec
 
 gem "celluloid", :git => "https://github.com/ioquatix/celluloid.git"
-
-group :test do
-	gem "rspec", "~> 3.0.0.rc1"
-end
