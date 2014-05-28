@@ -21,6 +21,7 @@
 # THE SOFTWARE.
 
 require 'rubydns'
+require 'benchmark'
 require 'process/daemon'
 
 module RubyDNS::ServerPerformanceSpec
@@ -79,8 +80,6 @@ module RubyDNS::ServerPerformanceSpec
 			end
 		
 			before do
-				require 'benchmark'
-			
 				Celluloid.shutdown
 			
 				@servers = []
