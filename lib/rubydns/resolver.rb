@@ -84,21 +84,21 @@ module RubyDNS
 		def dispatch_request(message)
 			request = Request.new(message, @servers)
 			
-			timer = after(request_timeout) do
-				@logger.debug "[#{message.id}] Request timed out!" if @logger
-			
-				request.cancel
-			end
-			
 			request.each do |server|
 				@logger.debug "[#{message.id}] Sending request to server #{server.inspect}" if @logger
 				
 				begin
-					response = try_server(request, server)
+					response = nil
+					
+					timeout(request_timeout) do
+						response = try_server(request, server)
+					end
 					
 					if valid_response(message, response)
 						return response
 					end
+				rescue Task::TimeoutError
+					@logger.debug "[#{message.id}] Request timed out!" if @logger
 				rescue InvalidResponseError
 					@logger.warn "[#{message.id}] Invalid response from network: #{$!}!" if @logger
 				rescue DecodeError
@@ -106,13 +106,9 @@ module RubyDNS
 				rescue IOError
 					@logger.warn "[#{message.id}] Error while reading from network: #{$!}!" if @logger
 				end
-				
-				timer.reset
 			end
 			
 			return nil
-		ensure
-			timer.cancel
 		end
 		
 		private
