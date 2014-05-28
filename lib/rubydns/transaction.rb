@@ -24,21 +24,19 @@ module RubyDNS
 	class PassthroughError < StandardError
 	end
 	
-	# This class provides all details of a single DNS question and answer. This is used by the DSL to provide DNS related functionality.
+	# This class provides all details of a single DNS question and response. This is used by the DSL to provide DNS related functionality.
 	# 
 	# The main functions to complete the trasaction are: {#append!} (evaluate a new query and append the results), {#passthrough!} (pass the query to an upstream server), {#respond!} (compute a specific response) and {#fail!} (fail with an error code).
 	class Transaction
 		# The default time used for responses (24 hours).
 		DEFAULT_TTL = 86400
 		
-		def initialize(server, query, question, resource_class, answer, options = {})
+		def initialize(server, query, question, resource_class, response, options = {})
 			@server = server
 			@query = query
 			@question = question
 			@resource_class = resource_class
-			@answer = answer
-			
-			puts @question.inspect
+			@response = response
 
 			@options = options
 		end
@@ -52,8 +50,8 @@ module RubyDNS
 		# The question that this transaction represents.
 		attr :question
 		
-		# The current full answer to the incoming query.
-		attr :answer
+		# The current full response to the incoming query.
+		attr :response
 		
 		# Any options or configuration associated with the given transaction.
 		attr :options
@@ -72,9 +70,9 @@ module RubyDNS
 			"#{name} #{@resource_class.name}"
 		end
 		
-		# Run a new query through the rules with the given name and resource type. The results of this query are appended to the current transaction's `answer`.
+		# Run a new query through the rules with the given name and resource type. The results of this query are appended to the current transaction's `response`.
 		def append!(name, resource_class = nil, options = {})
-			Transaction.new(@server, @query, name, resource_class || @resource_class, @answer, options).process
+			Transaction.new(@server, @query, name, resource_class || @resource_class, @response, options).process
 		end
 		
 		# Use the given resolver to respond to the question. Uses `passthrough` to do the lookup and merges the result.
@@ -93,9 +91,9 @@ module RubyDNS
 					
 					# Recursion is available and is being used:
 					# See issue #26 for more details.
-					@answer.ra = 1
+					@response.ra = 1
 					
-					@answer.merge!(response)
+					@response.merge!(response)
 				end
 			else
 				raise PassthroughError.new("Request is not recursive!")
@@ -163,7 +161,7 @@ module RubyDNS
 			resources.each do |resource|
 				@server.logger.debug "#{method}: #{resource.inspect} #{resource.class::TypeValue} #{resource.class::ClassValue}"
 				
-				@answer.send(method, name, ttl, resource)
+				@response.send(method, name, ttl, resource)
 			end
 		end
 		
@@ -186,9 +184,9 @@ module RubyDNS
 			append_question!
 			
 			if rcode.kind_of? Symbol
-				@answer.rcode = Resolv::DNS::RCode.const_get(rcode)
+				@response.rcode = Resolv::DNS::RCode.const_get(rcode)
 			else
-				@answer.rcode = rcode.to_i
+				@response.rcode = rcode.to_i
 			end
 		end
 		
@@ -206,10 +204,10 @@ module RubyDNS
 		
 		protected
 		
-		# A typical response to a DNS request includes both the question and answer. This helper appends the question unless it looks like the user is already managing that aspect of the response.
+		# A typical response to a DNS request includes both the question and response. This helper appends the question unless it looks like the user is already managing that aspect of the response.
 		def append_question!
-			if @answer.question.size == 0
-				@answer.add_question(@question, @resource_class)
+			if @response.question.size == 0
+				@response.add_question(@question, @resource_class)
 			end
 		end
 	end

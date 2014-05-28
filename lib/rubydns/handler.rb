@@ -90,17 +90,17 @@ module RubyDNS
 		def respond(input_data, remote_host, remote_port)
 			options = {peer: remote_host}
 			
-			answer = process_query(input_data, options)
+			response = process_query(input_data, options)
 			
-			output_data = answer.encode
+			output_data = response.encode
 			
-			@logger.debug "<#{answer.id}> Writing #{output_data.bytesize} bytes response to client via UDP..."
+			@logger.debug "<#{response.id}> Writing #{output_data.bytesize} bytes response to client via UDP..."
 			
 			if output_data.bytesize > UDP_TRUNCATION_SIZE
-				@logger.warn "<#{answer.id}>Response via UDP was larger than #{UDP_TRUNCATION_SIZE}!"
+				@logger.warn "<#{response.id}>Response via UDP was larger than #{UDP_TRUNCATION_SIZE}!"
 				
 				# Reencode data with truncation flag marked as true:
-				truncation_error = Resolv::DNS::Message.new(answer.id)
+				truncation_error = Resolv::DNS::Message.new(response.id)
 				truncation_error.tc = 1
 				
 				output_data = truncation_error.encode
@@ -147,11 +147,11 @@ module RubyDNS
 			
 			input_data = StreamTransport.read_chunk(socket)
 			
-			answer = process_query(input_data, options)
+			response = process_query(input_data, options)
 			
-			length = StreamTransport.write_message(socket, answer)
+			length = StreamTransport.write_message(socket, response)
 			
-			@logger.debug "<#{answer.id}> Wrote #{length} bytes via TCP..."
+			@logger.debug "<#{response.id}> Wrote #{length} bytes via TCP..."
 		rescue EOFError => error
 			@logger.warn "<> TCP session ended prematurely!"
 		rescue DecodeError

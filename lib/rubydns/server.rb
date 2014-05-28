@@ -67,14 +67,14 @@ module RubyDNS
 		def process_query(query, options = {}, &block)
 			start_time = Time.now
 			
-			# Setup answer
-			answer = Resolv::DNS::Message::new(query.id)
-			answer.qr = 1                 # 0 = Query, 1 = Response
-			answer.opcode = query.opcode  # Type of Query; copy from query
-			answer.aa = 1                 # Is this an authoritative response: 0 = No, 1 = Yes
-			answer.rd = query.rd          # Is Recursion Desired, copied from query
-			answer.ra = 0                 # Does name server support recursion: 0 = No, 1 = Yes
-			answer.rcode = 0              # Response code: 0 = No errors
+			# Setup response
+			response = Resolv::DNS::Message::new(query.id)
+			response.qr = 1                 # 0 = Query, 1 = Response
+			response.opcode = query.opcode  # Type of Query; copy from query
+			response.aa = 1                 # Is this an authoritative response: 0 = No, 1 = Yes
+			response.rd = query.rd          # Is Recursion Desired, copied from query
+			response.ra = 0                 # Does name server support recursion: 0 = No, 1 = Yes
+			response.rcode = 0              # Response code: 0 = No errors
 			
 			transaction = nil
 			
@@ -82,7 +82,7 @@ module RubyDNS
 				query.question.each do |question, resource_class|
 					@logger.debug {"<#{query.id}> Processing question #{question} #{resource_class}..."}
 			
-					transaction = Transaction.new(self, query, question, resource_class, answer, options)
+					transaction = Transaction.new(self, query, question, resource_class, response, options)
 					
 					transaction.process
 				end
@@ -92,13 +92,13 @@ module RubyDNS
 				@logger.error "<#{query.id}> Exception thrown while processing #{transaction}!"
 				RubyDNS.log_exception(@logger, error)
 			
-				answer.rcode = Resolv::DNS::RCode::ServFail
+				response.rcode = Resolv::DNS::RCode::ServFail
 			end
 			
 			end_time = Time.now
 			@logger.debug {"<#{query.id}> Time to process request: #{end_time - start_time}s"}
 			
-			return answer
+			return response
 		end
 		
 		#
