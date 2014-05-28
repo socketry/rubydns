@@ -124,7 +124,7 @@ module RubyDNS::ServerPerformanceSpec
 								futures = @domains.collect{|domain| resolver.future.addresses_for(domain)}
 							
 								futures.collect do |future|
-									expect(future.value).to_not be == nil
+									expect(future.value).to_not be nil
 								end
 							end
 						end
