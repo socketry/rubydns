@@ -23,36 +23,38 @@
 require 'rubydns'
 require 'rubydns/system'
 
-describe RubyDNS::System do
-	before(:all) do
-		Celluloid.shutdown
-		Celluloid.boot
-	end
-	
-	it "should have at least one namesever" do
-		expect(RubyDNS::System::nameservers.length).to be > 0
-	end
-	
-	it "should respond to query for google.com" do
-		resolver = RubyDNS::Resolver.new(RubyDNS::System::nameservers)
-		
-		response = resolver.query('google.com')
-		
-		expect(response.class).to be == RubyDNS::Message
-		expect(response.rcode).to be == Resolv::DNS::RCode::NoError
-	end
-end
-
-describe RubyDNS::System::Hosts do
-	it "should parse the hosts file" do
-		hosts = RubyDNS::System::Hosts.new
-		
-		# Load the test hosts data:
-		File.open(File.expand_path("../hosts.txt", __FILE__)) do |file|
-			hosts.parse_hosts(file)
+module RubyDNS::SystemSpec
+	describe RubyDNS::System do
+		before(:all) do
+			Celluloid.shutdown
+			Celluloid.boot
 		end
+	
+		it "should have at least one namesever" do
+			expect(RubyDNS::System::nameservers.length).to be > 0
+		end
+	
+		it "should respond to query for google.com" do
+			resolver = RubyDNS::Resolver.new(RubyDNS::System::nameservers)
 		
-		expect(hosts.call('testing')).to be == true
-		expect(hosts['testing']).to be == '1.2.3.4'
+			response = resolver.query('google.com')
+		
+			expect(response.class).to be == RubyDNS::Message
+			expect(response.rcode).to be == Resolv::DNS::RCode::NoError
+		end
+	end
+
+	describe RubyDNS::System::Hosts do
+		it "should parse the hosts file" do
+			hosts = RubyDNS::System::Hosts.new
+		
+			# Load the test hosts data:
+			File.open(File.expand_path("../hosts.txt", __FILE__)) do |file|
+				hosts.parse_hosts(file)
+			end
+		
+			expect(hosts.call('testing')).to be == true
+			expect(hosts['testing']).to be == '1.2.3.4'
+		end
 	end
 end

@@ -22,117 +22,119 @@
 
 require 'rubydns'
 
-describe RubyDNS::Resolver do
-	class JunkUDPServer
-		include Celluloid::IO
+module RubyDNS::ResolverSpec
+	describe RubyDNS::Resolver do
+		class JunkUDPServer
+			include Celluloid::IO
+	
+			def initialize
+				@socket = UDPSocket.new
+				@socket.bind("0.0.0.0", 6060)
 		
-		def initialize
-			@socket = UDPSocket.new
-			@socket.bind("0.0.0.0", 6060)
-			
-			async.run
+				async.run
+			end
+	
+			finalizer :shutdown
+	
+			def finalize
+				@socket.close if @socket
+			end
+	
+			def run
+				data, (_, port, host) = @socket.recvfrom(1024)
+		
+				@socket.send("Foobar", 0, host, port)
+			end
 		end
+
+		class JunkTCPServer
+			include Celluloid::IO
+	
+			def initialize
+				@socket = TCPServer.new("0.0.0.0", 6060)
 		
-		finalizer :shutdown
-		
-		def finalize
-			@socket.close if @socket
+				async.run
+			end
+	
+			finalizer :shutdown
+	
+			def finalize
+				@socket.close if @socket
+			end
+	
+			def run
+				# @logger.debug "Waiting for incoming TCP connections #{@socket.inspect}..."
+				loop { async.handle_connection @socket.accept }
+			end
+	
+			def handle_connection(socket)
+				socket.write("\0\0obar")
+			ensure
+				socket.close
+			end
 		end
-		
-		def run
-			data, (_, port, host) = @socket.recvfrom(1024)
-			
-			@socket.send("Foobar", 0, host, port)
+
+		before(:all) do
+			Celluloid.shutdown
+			Celluloid.boot
+	
+			JunkUDPServer.supervise
+			JunkTCPServer.supervise
 		end
-	end
+
+		it "should result in non-existent domain" do
+			resolver = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
 	
-	class JunkTCPServer
-		include Celluloid::IO
-		
-		def initialize
-			@socket = TCPServer.new("0.0.0.0", 6060)
-			
-			async.run
+			response = resolver.query('foobar.oriontransfer.org')
+	
+			expect(response.rcode).to be == Resolv::DNS::RCode::NXDomain
 		end
-		
-		finalizer :shutdown
-		
-		def finalize
-			@socket.close if @socket
+
+		it "should result in some answers" do
+			resolver = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
+	
+			response = resolver.query('google.com')
+	
+			expect(response.class).to be == RubyDNS::Message
+			expect(response.answer.size).to be > 0
 		end
-		
-		def run
-			# @logger.debug "Waiting for incoming TCP connections #{@socket.inspect}..."
-			loop { async.handle_connection @socket.accept }
+
+		it "should return no results" do
+			resolver = RubyDNS::Resolver.new([])
+	
+			response = resolver.query('google.com')
+	
+			expect(response).to be == nil
 		end
-		
-		def handle_connection(socket)
-			socket.write("\0\0obar")
-		ensure
-			socket.close
+
+		it "should fail to get addresses" do
+			resolver = RubyDNS::Resolver.new([])
+	
+			expect{resolver.addresses_for('google.com')}.to raise_error(RubyDNS::ResolutionFailure)
 		end
-	end
+
+		it "should fail with decode error from bad udp server" do
+			resolver = RubyDNS::Resolver.new([[:udp, "0.0.0.0", 6060]])
 	
-	before(:all) do
-		Celluloid.shutdown
-		Celluloid.boot
-		
-		JunkUDPServer.supervise
-		JunkTCPServer.supervise
-	end
+			expect{resolver.query('google.com')}.to raise_error(RubyDNS::DecodeError)
+		end
+
+		it "should fail with decode error from bad tcp server" do
+			resolver = RubyDNS::Resolver.new([[:tcp, "0.0.0.0", 6060]])
 	
-	it "should result in non-existent domain" do
-		resolver = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
-		
-		response = resolver.query('foobar.oriontransfer.org')
-		
-		expect(response.rcode).to be == Resolv::DNS::RCode::NXDomain
-	end
+			expect{resolver.query('google.com')}.to raise_error(RubyDNS::DecodeError)
+		end
+
+		it "should return some IPv4 and IPv6 addresses" do
+			resolver = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
 	
-	it "should result in some answers" do
-		resolver = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
-		
-		response = resolver.query('google.com')
-		
-		expect(response.class).to be == RubyDNS::Message
-		expect(response.answer.size).to be > 0
-	end
+			addresses = resolver.addresses_for("www.google.com.")
 	
-	it "should return no results" do
-		resolver = RubyDNS::Resolver.new([])
-		
-		response = resolver.query('google.com')
-		
-		expect(response).to be == nil
-	end
+			expect(addresses.size).to be > 0
 	
-	it "should fail to get addresses" do
-		resolver = RubyDNS::Resolver.new([])
-		
-		expect{resolver.addresses_for('google.com')}.to raise_error(RubyDNS::ResolutionFailure)
-	end
-	
-	it "should fail with decode error from bad udp server" do
-		resolver = RubyDNS::Resolver.new([[:udp, "0.0.0.0", 6060]])
-		
-		expect{resolver.query('google.com')}.to raise_error(RubyDNS::DecodeError)
-	end
-	
-	it "should fail with decode error from bad tcp server" do
-		resolver = RubyDNS::Resolver.new([[:tcp, "0.0.0.0", 6060]])
-		
-		expect{resolver.query('google.com')}.to raise_error(RubyDNS::DecodeError)
-	end
-	
-	it "should return some IPv4 and IPv6 addresses" do
-		resolver = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
-		
-		addresses = resolver.addresses_for("www.google.com.")
-		
-		expect(addresses.size).to be > 0
-		
-		addresses.each do |address|
-			expect(address).to be_kind_of(Resolv::IPv4) | be_kind_of(Resolv::IPv6)
+			addresses.each do |address|
+				expect(address).to be_kind_of(Resolv::IPv4) | be_kind_of(Resolv::IPv6)
+			end
 		end
 	end
 end

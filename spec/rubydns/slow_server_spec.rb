@@ -22,66 +22,68 @@
 
 require 'rubydns'
 
-describe "RubyDNS Slow Server" do
-	self::SERVER_PORTS = [[:udp, '127.0.0.1', 5330], [:tcp, '127.0.0.1', 5330]]
-	self::IN = Resolv::DNS::Resource::IN
+module RubyDNS::SlowServerSpec
+	SERVER_PORTS = [[:udp, '127.0.0.1', 5330], [:tcp, '127.0.0.1', 5330]]
+	IN = Resolv::DNS::Resource::IN
 	
-	before(:all) do
-		Celluloid.shutdown
-		Celluloid.boot
+	describe "RubyDNS Slow Server" do
+		before(:all) do
+			Celluloid.shutdown
+			Celluloid.boot
 		
-		@server = RubyDNS::run_server(:listen => SERVER_PORTS, asynchronous: true) do
-			match(/\.*.com/, IN::A) do |transaction|
-				sleep 2
+			@server = RubyDNS::run_server(:listen => SERVER_PORTS, asynchronous: true) do
+				match(/\.*.com/, IN::A) do |transaction|
+					sleep 2
 				
-				transaction.fail!(:NXDomain)
-			end
+					transaction.fail!(:NXDomain)
+				end
 
-			otherwise do |transaction|
-				transaction.fail!(:NXDomain)
+				otherwise do |transaction|
+					transaction.fail!(:NXDomain)
+				end
 			end
 		end
-	end
 	
-	it "get no answer after 2 seconds" do
-		start_time = Time.now
+		it "get no answer after 2 seconds" do
+			start_time = Time.now
 		
-		resolver = RubyDNS::Resolver.new(SERVER_PORTS, :timeout => 10)
+			resolver = RubyDNS::Resolver.new(SERVER_PORTS, :timeout => 10)
 		
-		response = resolver.query("apple.com", IN::A)
+			response = resolver.query("apple.com", IN::A)
 		
-		expect(response.answer.length).to be == 0
+			expect(response.answer.length).to be == 0
 		
-		end_time = Time.now
+			end_time = Time.now
 		
-		expect(end_time - start_time).to be_within(0.1).of(2.0)
-	end
+			expect(end_time - start_time).to be_within(0.1).of(2.0)
+		end
 	
-	it "times out after 1 second" do
-		start_time = Time.now
+		it "times out after 1 second" do
+			start_time = Time.now
 		
-		resolver = RubyDNS::Resolver.new(SERVER_PORTS, :timeout => 0.5)
+			resolver = RubyDNS::Resolver.new(SERVER_PORTS, :timeout => 0.5)
 		
-		response = resolver.query("apple.com", IN::A)
+			response = resolver.query("apple.com", IN::A)
 		
-		expect(response).to be nil
+			expect(response).to be nil
 		
-		end_time = Time.now
+			end_time = Time.now
 		
-		expect(end_time - start_time).to be_within(0.1).of(1.0)
-	end
+			expect(end_time - start_time).to be_within(0.1).of(1.0)
+		end
 	
-	it "gets no answer immediately" do
-		start_time = Time.now
+		it "gets no answer immediately" do
+			start_time = Time.now
 		
-		resolver = RubyDNS::Resolver.new(SERVER_PORTS, :timeout => 0.5)
+			resolver = RubyDNS::Resolver.new(SERVER_PORTS, :timeout => 0.5)
 		
-		response = resolver.query("oriontransfer.org", IN::A)
+			response = resolver.query("oriontransfer.org", IN::A)
 		
-		expect(response.answer.length).to be 0
+			expect(response.answer.length).to be 0
 		
-		end_time = Time.now
+			end_time = Time.now
 		
-		expect(end_time - start_time).to be_within(0.1).of(0.0)
+			expect(end_time - start_time).to be_within(0.1).of(0.0)
+		end
 	end
 end

@@ -23,44 +23,34 @@
 require 'rubydns'
 require 'base64'
 
-describe RubyDNS::Message do
-	def hex2bin(hexstring)
-		ret = "\x00" * (hexstring.length / 2)
-		ret.force_encoding("BINARY")
-		offset = 0
-		while offset < hexstring.length
-			hex_byte = hexstring[offset..(offset+1)]
-			ret.setbyte(offset/2, hex_byte.to_i(16))
-			offset += 2
+module RubyDNS::MessageSpec
+	describe RubyDNS::Message do
+		it "should be decoded correctly" do
+			data = Base64.decode64(<<-EOF)
+			HQCBgAABAAgAAAABA3d3dwV5YWhvbwNjb20AAAEAAcAMAAUAAQAAASwADwZm
+			ZC1mcDMDd2cxAWLAEMArAAUAAQAAASwACQZkcy1mcDPAMsBGAAUAAQAAADwA
+			FQ5kcy1hbnktZnAzLWxmYgN3YTHANsBbAAUAAQAAASwAEg9kcy1hbnktZnAz
+			LXJlYWzAasB8AAEAAQAAADwABGKK/B7AfAABAAEAAAA8AARii7SVwHwAAQAB
+			AAAAPAAEYou3GMB8AAEAAQAAADwABGKK/W0AACkQAAAAAAAAAA==
+			EOF
+	
+			message = RubyDNS::decode_message(data)
+			expect(message.class).to be == RubyDNS::Message
+			expect(message.id).to be == 0x1d00
+	
+			expect(message.question.count).to be == 1
+			expect(message.answer.count).to be == 8
+			expect(message.authority.count).to be == 0
+			expect(message.additional.count).to be == 1
 		end
-		ret
-	end
+
+		it "should fail to decode due to bad AAAA length" do
+			data = Base64.decode64(<<-EOF)
+			6p6BgAABAAEAAAABCGJhaWNhaWNuA2NvbQAAHAABwAwAHAABAAABHgAEMhd7
+			dwAAKRAAAAAAAAAA
+			EOF
 	
-	it "should be decoded correctly" do
-		data = Base64.decode64(<<-EOF)
-		HQCBgAABAAgAAAABA3d3dwV5YWhvbwNjb20AAAEAAcAMAAUAAQAAASwADwZm
-		ZC1mcDMDd2cxAWLAEMArAAUAAQAAASwACQZkcy1mcDPAMsBGAAUAAQAAADwA
-		FQ5kcy1hbnktZnAzLWxmYgN3YTHANsBbAAUAAQAAASwAEg9kcy1hbnktZnAz
-		LXJlYWzAasB8AAEAAQAAADwABGKK/B7AfAABAAEAAAA8AARii7SVwHwAAQAB
-		AAAAPAAEYou3GMB8AAEAAQAAADwABGKK/W0AACkQAAAAAAAAAA==
-		EOF
-		
-		message = RubyDNS::decode_message(data)
-		expect(message.class).to be == RubyDNS::Message
-		expect(message.id).to be == 0x1d00
-		
-		expect(message.question.count).to be == 1
-		expect(message.answer.count).to be == 8
-		expect(message.authority.count).to be == 0
-		expect(message.additional.count).to be == 1
-	end
-	
-	it "should fail to decode due to bad AAAA length" do
-		data = Base64.decode64(<<-EOF)
-		6p6BgAABAAEAAAABCGJhaWNhaWNuA2NvbQAAHAABwAwAHAABAAABHgAEMhd7
-		dwAAKRAAAAAAAAAA
-		EOF
-		
-		expect{RubyDNS::decode_message(data)}.to raise_error(RubyDNS::DecodeError)
+			expect{RubyDNS::decode_message(data)}.to raise_error(RubyDNS::DecodeError)
+		end
 	end
 end

@@ -22,86 +22,88 @@
 
 require 'rubydns'
 
-describe RubyDNS::Resolver do
-	context 'benchmark' do
-		domains = %W{
-			Facebook.com
-			Twitter.com
-			Google.com
-			Youtube.com
-			Wordpress.org
-			Adobe.com
-			Blogspot.com
-			Wikipedia.org
-			Linkedin.com
-			Wordpress.com
-			Yahoo.com
-			Amazon.com
-			Flickr.com
-			Pinterest.com
-			Tumblr.com
-			W3.org
-			Apple.com
-			Myspace.com
-			Vimeo.com
-			Microsoft.com
-			Youtu.be
-			Qq.com
-			Digg.com
-			Baidu.com
-			Stumbleupon.com
-			Addthis.com
-			Statcounter.com
-			Feedburner.com
-			TradeMe.co.nz
-			Delicious.com
-			Nytimes.com
-			Reddit.com
-			Weebly.com
-			Bbc.co.uk
-			Blogger.com
-			Msn.com
-			Macromedia.com
-			Goo.gl
-			Instagram.com
-			Gov.uk
-			Icio.us
-			Yandex.ru
-			Cnn.com
-			Webs.com
-			Google.de
-			T.co
-			Livejournal.com
-			Imdb.com
-			Mail.ru
-			Jimdo.com
-		}
+module RubyDNS::ResolverPerformanceSpec
+	describe RubyDNS::Resolver do
+		context 'benchmark' do
+			domains = %W{
+				Facebook.com
+				Twitter.com
+				Google.com
+				Youtube.com
+				Wordpress.org
+				Adobe.com
+				Blogspot.com
+				Wikipedia.org
+				Linkedin.com
+				Wordpress.com
+				Yahoo.com
+				Amazon.com
+				Flickr.com
+				Pinterest.com
+				Tumblr.com
+				W3.org
+				Apple.com
+				Myspace.com
+				Vimeo.com
+				Microsoft.com
+				Youtu.be
+				Qq.com
+				Digg.com
+				Baidu.com
+				Stumbleupon.com
+				Addthis.com
+				Statcounter.com
+				Feedburner.com
+				TradeMe.co.nz
+				Delicious.com
+				Nytimes.com
+				Reddit.com
+				Weebly.com
+				Bbc.co.uk
+				Blogger.com
+				Msn.com
+				Macromedia.com
+				Goo.gl
+				Instagram.com
+				Gov.uk
+				Icio.us
+				Yandex.ru
+				Cnn.com
+				Webs.com
+				Google.de
+				T.co
+				Livejournal.com
+				Imdb.com
+				Mail.ru
+				Jimdo.com
+			}
 		
-		before do
-			require 'benchmark'
-		end
+			before do
+				require 'benchmark'
+			end
 		
-		it 'should be faster than native resolver' do
-			Celluloid.logger.level = Logger::ERROR
+			it 'should be faster than native resolver' do
+				Celluloid.logger.level = Logger::ERROR
 			
-			Benchmark.bm(20) do |x|
-				a = x.report("RubyDNS::Resolver") do
-					resolver = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
+				Benchmark.bm(20) do |x|
+					a = x.report("RubyDNS::Resolver") do
+						resolver = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
 					
-					futures = domains.collect{|domain| resolver.future.addresses_for(domain)}
+						futures = domains.collect{|domain| resolver.future.addresses_for(domain)}
 					
-					futures.collect{|future| future.value}
-				end
-			
-				b = x.report("Resolv::DNS") do
-					resolver = Resolv::DNS.new(:nameserver => "8.8.8.8")
-				
-					resolved = domains.collect do |domain|
-						[domain, resolver.getaddresses(domain)]
+						futures.collect{|future| future.value}
 					end
-				end
+			
+					b = x.report("Resolv::DNS") do
+						resolver = Resolv::DNS.new(:nameserver => "8.8.8.8")
 				
-				expect(a.real).to be < b.real
+						resolved = domains.collect do |domain|
+							[domain, resolver.getaddresses(domain)]
+						end
+					end
+				
+					expect(a.real).to be < b.real
+				end
 			end
 		end
 	end

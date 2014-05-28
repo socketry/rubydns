@@ -23,39 +23,37 @@
 require 'rubydns'
 require 'rubydns/extensions/string'
 
-module RubyDNS
-	module TruncationServer
-		SERVER_PORTS = [[:udp, '127.0.0.1', 5520], [:tcp, '127.0.0.1', 5520]]
-		IN = Resolv::DNS::Resource::IN
-		
-		describe "RubyDNS Truncation Server" do
-			before(:all) do
-				Celluloid.shutdown
-				Celluloid.boot
-		
-				# Start the RubyDNS server
-				RubyDNS::run_server(:listen => SERVER_PORTS, asynchronous: true) do
-					match("truncation", IN::TXT) do |transaction|
-						text = "Hello World! " * 100
-						transaction.respond!(*text.chunked)
-					end
+module RubyDNS::TruncationSpec
+	SERVER_PORTS = [[:udp, '127.0.0.1', 5520], [:tcp, '127.0.0.1', 5520]]
+	IN = Resolv::DNS::Resource::IN
+	
+	describe "RubyDNS Truncation Server" do
+		before(:all) do
+			Celluloid.shutdown
+			Celluloid.boot
 			
-					# Default DNS handler
-					otherwise do |transaction|
-						transaction.fail!(:NXDomain)
-					end
+			# Start the RubyDNS server
+			RubyDNS::run_server(:listen => SERVER_PORTS, asynchronous: true) do
+				match("truncation", IN::TXT) do |transaction|
+					text = "Hello World! " * 100
+					transaction.respond!(*text.chunked)
+				end
+		
+				# Default DNS handler
+				otherwise do |transaction|
+					transaction.fail!(:NXDomain)
 				end
 			end
+		end
+
+		it "should use tcp because of large response" do
+			resolver = RubyDNS::Resolver.new(SERVER_PORTS)
 	
-			it "should use tcp because of large response" do
-				resolver = RubyDNS::Resolver.new(SERVER_PORTS)
-		
-				response = resolver.query("truncation", IN::TXT)
-		
-				text = response.answer.first
-		
-				expect(text[2].strings.join).to be == ("Hello World! " * 100)
-			end
+			response = resolver.query("truncation", IN::TXT)
+	
+			text = response.answer.first
+	
+			expect(text[2].strings.join).to be == ("Hello World! " * 100)
 		end
 	end
 end

@@ -22,55 +22,57 @@
 
 require 'rubydns'
 
-describe "RubyDNS Passthrough Server" do
-	self::SERVER_PORTS = [[:udp, '127.0.0.1', 5340], [:tcp, '127.0.0.1', 5340]]
-	self::Name = Resolv::DNS::Name
-	self::IN = Resolv::DNS::Resource::IN
+module RubyDNS::PassthroughSpec
+	SERVER_PORTS = [[:udp, '127.0.0.1', 5340], [:tcp, '127.0.0.1', 5340]]
+	Name = Resolv::DNS::Name
+	IN = Resolv::DNS::Resource::IN
 	
-	before(:all) do
-		Celluloid.shutdown
-		Celluloid.boot
+	describe "RubyDNS Passthrough Server" do
+		before(:all) do
+			Celluloid.shutdown
+			Celluloid.boot
 		
-		# Start the RubyDNS server
-		@server = RubyDNS::run_server(:listen => SERVER_PORTS, asynchronous: true) do
-			resolver = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
+			# Start the RubyDNS server
+			@server = RubyDNS::run_server(:listen => SERVER_PORTS, asynchronous: true) do
+				resolver = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
 			
-			match(/.*\.com/, IN::A) do |transaction|
-				transaction.passthrough!(resolver)
-			end
+				match(/.*\.com/, IN::A) do |transaction|
+					transaction.passthrough!(resolver)
+				end
 
-			match(/a-(.*\.org)/) do |transaction, match_data|
-				transaction.passthrough!(resolver, :name => match_data[1])
-			end
+				match(/a-(.*\.org)/) do |transaction, match_data|
+					transaction.passthrough!(resolver, :name => match_data[1])
+				end
 
-			# Default DNS handler
-			otherwise do |transaction|
-				transaction.fail!(:NXDomain)
+				# Default DNS handler
+				otherwise do |transaction|
+					transaction.fail!(:NXDomain)
+				end
 			end
 		end
-	end
 	
-	it "should resolve domain correctly" do
-		resolver = RubyDNS::Resolver.new(SERVER_PORTS)
+		it "should resolve domain correctly" do
+			resolver = RubyDNS::Resolver.new(SERVER_PORTS)
 		
-		response = resolver.query("google.com")
-		expect(response.ra).to be == 1
+			response = resolver.query("google.com")
+			expect(response.ra).to be == 1
 		
-		answer = response.answer.first
-		expect(answer).not_to be == nil
-		expect(answer.count).to be > 0
+			answer = response.answer.first
+			expect(answer).not_to be == nil
+			expect(answer.count).to be > 0
 		
-		addresses = answer.select {|record| record.kind_of? Resolv::DNS::Resource::IN::A}
-		expect(addresses.size).to be > 0
-	end
+			addresses = answer.select {|record| record.kind_of? Resolv::DNS::Resource::IN::A}
+			expect(addresses.size).to be > 0
+		end
 	
-	it "should resolve prefixed domain correctly" do
-		resolver = RubyDNS::Resolver.new(SERVER_PORTS)
+		it "should resolve prefixed domain correctly" do
+			resolver = RubyDNS::Resolver.new(SERVER_PORTS)
 		
-		response = resolver.query("a-slashdot.org")
-		answer = response.answer.first
+			response = resolver.query("a-slashdot.org")
+			answer = response.answer.first
 		
-		expect(answer).not_to be == nil
-		expect(answer.count).to be > 0
+			expect(answer).not_to be == nil
+			expect(answer.count).to be > 0
+		end
 	end
 end
