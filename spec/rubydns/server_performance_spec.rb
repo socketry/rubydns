@@ -96,11 +96,9 @@ module RubyDNS::ServerPerformanceSpec
 					ServerPerformanceBind9.start
 					@servers << ["Bind9", 5400]
 				end
-			
-				ServerPerformanceBind9.start
-			
+				
 				sleep 2
-			
+				
 				Celluloid.boot
 			end
 		
