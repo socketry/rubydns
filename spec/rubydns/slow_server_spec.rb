@@ -34,7 +34,7 @@ module RubyDNS::SlowServerSpec
 			@server = RubyDNS::run_server(:listen => SERVER_PORTS, asynchronous: true) do
 				match(/\.*.com/, IN::A) do |transaction|
 					sleep 2
-				
+					
 					transaction.fail!(:NXDomain)
 				end
 

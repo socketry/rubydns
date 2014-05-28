@@ -115,14 +115,18 @@ module RubyDNS::ResolverSpec
 
 		it "should fail with decode error from bad udp server" do
 			resolver = RubyDNS::Resolver.new([[:udp, "0.0.0.0", 6060]])
-	
-			expect{resolver.query('google.com')}.to raise_error(RubyDNS::DecodeError)
+			
+			response = resolver.query('google.com')
+			
+			expect(response).to be == nil
 		end
 
 		it "should fail with decode error from bad tcp server" do
 			resolver = RubyDNS::Resolver.new([[:tcp, "0.0.0.0", 6060]])
-	
-			expect{resolver.query('google.com')}.to raise_error(RubyDNS::DecodeError)
+			
+			response = resolver.query('google.com')
+			
+			expect(response).to be == nil
 		end
 
 		it "should return some IPv4 and IPv6 addresses" do

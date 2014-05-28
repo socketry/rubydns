@@ -18,8 +18,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'fiber'
-
 require 'celluloid/io'
 
 require_relative 'transaction'
@@ -88,8 +86,10 @@ module RubyDNS
 					
 					transaction.process
 				end
-			rescue => error
-				@logger.error {"<#{query.id}> Exception thrown while processing #{transaction}!"}
+			rescue Celluloid::ResumableError
+				raise
+			rescue StandardError => error
+				@logger.error "<#{query.id}> Exception thrown while processing #{transaction}!"
 				RubyDNS.log_exception(@logger, error)
 			
 				answer.rcode = Resolv::DNS::RCode::ServFail

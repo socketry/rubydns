@@ -20,6 +20,7 @@
 
 module RubyDNS
 	
+	# Indicates that the passthrough of the request failed for some reason.
 	class PassthroughError < StandardError
 	end
 	
@@ -36,12 +37,10 @@ module RubyDNS
 			@question = question
 			@resource_class = resource_class
 			@answer = answer
+			
+			puts @question.inspect
 
 			@options = options
-
-			@question_appended = false
-
-			@fiber = nil
 		end
 
 		# The resource_class that was requested. This is typically used to generate a response.
@@ -112,20 +111,13 @@ module RubyDNS
 			query_name = options[:name] || name
 			query_resource_class = options[:resource_class] || resource_class
 			
-			response = @server.defer do |handle|
-				resolver.query(query_name, query_resource_class) do |response|
-					# Not sure if this is potentially a race condition? Could fiber.resume occur before Fiber.yield?
-					handle.resume(response)
-				end
-			end
+			response = resolver.query(query_name, query_resource_class)
 			
 			case response
 			when RubyDNS::Message
 				yield response
-			when RubyDNS::ResolutionFailure
-				fail!(:ServFail)
 			else
-				throw PassthroughError.new("Bad response from query: #{response.inspect}")
+				fail!(:ServFail)
 			end
 		end
 		
@@ -217,7 +209,7 @@ module RubyDNS
 		# A typical response to a DNS request includes both the question and answer. This helper appends the question unless it looks like the user is already managing that aspect of the response.
 		def append_question!
 			if @answer.question.size == 0
-				@answer.add_question(@question, @resource_class) unless @question_appended
+				@answer.add_question(@question, @resource_class)
 			end
 		end
 	end

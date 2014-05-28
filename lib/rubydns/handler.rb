@@ -34,32 +34,38 @@ module RubyDNS
 			@socket.close if @socket
 		end
 		
+		def error_response(query = nil, code = Resolv::DNS::RCode::ServFail)
+			# Encoding may fail, so we need to handle this particular case:
+			server_failure = Resolv::DNS::Message::new(query ? query.id : 0)
+			
+			server_failure.qr = 1
+			server_failure.opcode = query ? query.opcode : 0
+			server_failure.aa = 1
+			server_failure.rd = 0
+			server_failure.ra = 0
+
+			server_failure.rcode = code
+
+			# We can't do anything at this point...
+			return server_failure
+		end
+		
 		def process_query(data, options)
-			@logger.debug "<> Receiving incoming query (#{data.bytesize} bytes)..."
+			@logger.debug "<> Receiving incoming query (#{data.bytesize} bytes) to #{self.class.name}..."
 			query = nil
 
 			begin
 				query = RubyDNS::decode_message(data)
-
+				
 				return @server.process_query(query, options)
-			rescue Exception => error
-				@logger.error "<> Error processing request!"
-				@logger.error "<> #{error.class}: #{error.message}"
-
-				error.backtrace.each { |line| @logger.error line }
-
-				# Encoding may fail, so we need to handle this particular case:
-				server_failure = Resolv::DNS::Message::new(query ? query.id : 0)
-				server_failure.qr = 1
-				server_failure.opcode = query ? query.opcode : 0
-				server_failure.aa = 1
-				server_failure.rd = 0
-				server_failure.ra = 0
-
-				server_failure.rcode = Resolv::DNS::RCode::ServFail
-
-				# We can't do anything at this point...
-				return server_failure
+			rescue Celluloid::ResumableError
+				# Celluloid terminates tasks, we may be stuck in a task when the server is terminated. We don't want to reply to the client in this case, because the server is being terminated. It might be an option to return a server failure
+				raise
+			rescue StandardError => error
+				@logger.error "<> Error processing request: #{error.inspect}!"
+				RubyDNS::log_exception(@logger, error)
+				
+				return error_response(query)
 			end
 		end
 	end
@@ -88,7 +94,7 @@ module RubyDNS
 			
 			output_data = answer.encode
 			
-			@logger.debug "<#{answer.id}> Writing response to client (#{output_data.bytesize} bytes) via UDP..."
+			@logger.debug "<#{answer.id}> Writing #{output_data.bytesize} bytes response to client via UDP..."
 			
 			if output_data.bytesize > UDP_TRUNCATION_SIZE
 				@logger.warn "<#{answer.id}>Response via UDP was larger than #{UDP_TRUNCATION_SIZE}!"
@@ -101,8 +107,12 @@ module RubyDNS
 			end
 			
 			@socket.send(output_data, 0, remote_host, remote_port)
+		rescue IOError => error
+			@logger.warn "<> UDP response failed: #{error.inspect}!"
 		rescue EOFError => error
-			@logger.warn "<> UDP session ended prematurely!"
+			@logger.warn "<> UDP session ended prematurely: #{error.inspect}!"
+		rescue DecodeError
+			@logger.warn "<> Could not decode incoming UDP data!"
 		end
 		
 		def handle_connection
@@ -111,6 +121,8 @@ module RubyDNS
 			input_data, (_, remote_port, remote_host) = @socket.recvfrom(UDP_TRUNCATION_SIZE)
 			
 			async.respond(input_data, remote_host, remote_port)
+		rescue IOError => error
+			@logger.warn "<> UDP connection failed: #{error.inspect}!"
 		rescue EOFError => error
 			@logger.warn "<> UDP session ended prematurely!"
 		end
@@ -126,7 +138,6 @@ module RubyDNS
 		end
 		
 		def run
-			# @logger.debug "Waiting for incoming TCP connections #{@socket.inspect}..."
 			loop { async.handle_connection @socket.accept }
 		end
 		
@@ -143,8 +154,8 @@ module RubyDNS
 			@logger.debug "<#{answer.id}> Wrote #{length} bytes via TCP..."
 		rescue EOFError => error
 			@logger.warn "<> TCP session ended prematurely!"
-		rescue Resolv::DNS::DecodeError
-			@logger.warn "<> Could not decode incoming data!"
+		rescue DecodeError
+			@logger.warn "<> Could not decode incoming TCP data!"
 		ensure
 			socket.close
 		end
