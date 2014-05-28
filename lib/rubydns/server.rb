@@ -48,8 +48,6 @@ module RubyDNS
 			
 			@logger = options[:logger] || Celluloid.logger
 			@interfaces = options[:listen] || DEFAULT_INTERFACES
-			
-			async.run
 		end
 
 		attr_accessor :logger
@@ -127,9 +125,9 @@ module RubyDNS
 				@logger.info "<> Listening on #{spec.join(':')}"
 				
 				if spec[0] == :udp
-					link UDPHandler.supervise(self, spec[1], spec[2])
+					link UDPHandler.new(self, spec[1], spec[2])
 				elsif spec[0] == :tcp
-					link TCPHandler.supervise(self, spec[1], spec[2])
+					link TCPHandler.new(self, spec[1], spec[2])
 				else
 					raise ArgumentError.new("Invalid connection specification: #{spec.inspect}")
 				end

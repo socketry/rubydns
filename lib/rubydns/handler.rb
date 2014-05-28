@@ -28,15 +28,10 @@ module RubyDNS
 		def initialize(server)
 			@server = server
 			@logger = @server.logger || Celluloid.logger
-			
-			async.run
 		end
 		
 		def finalize
 			@socket.close if @socket
-		end
-		
-		def run
 		end
 		
 		def process_query(data, options)
@@ -78,6 +73,8 @@ module RubyDNS
 			
 			@socket = UDPSocket.new
 			@socket.bind(host, port)
+			
+			async.run
 		end
 		
 		def run
@@ -124,6 +121,8 @@ module RubyDNS
 			super(server)
 			
 			@socket = TCPServer.new(host, port)
+			
+			async.run
 		end
 		
 		def run

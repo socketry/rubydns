@@ -31,6 +31,8 @@ module RubyDNS
 	def self.run_server (options = {}, &block)
 		supervisor = RubyDNS::RuleBasedServer.supervise(options, &block)
 		
+		supervisor.actors.first.run
+		
 		trap("INT") { supervisor.terminate; exit }
 		
 		if options[:asynchronous]
