@@ -63,17 +63,21 @@ module RubyDNS
 		end
 		
 		# Yields a list of `Resolv::IPv4` and `Resolv::IPv6` addresses for the given `name` and `resource_class`. Raises a ResolutionFailure if no severs respond.
-		def addresses_for(name, resource_class = Resolv::DNS::Resource::IN::A)
-			response = query(name, resource_class)
-			# Resolv::DNS::Name doesn't retain the trailing dot.
-			name = name.sub(/\.$/, '')
-			
-			case response
-			when Message
-				response.answer.select{|record| record[0].to_s == name}.collect{|record| record[2].address}
-			else
-				abort ResolutionFailure.new("No server replied.")
+		def addresses_for(name, resource_class = Resolv::DNS::Resource::IN::A, options = {})
+			(options[:retries] || 3).times do
+				response = query(name, resource_class)
+				
+				if response
+					# Resolv::DNS::Name doesn't retain the trailing dot.
+					name = name.sub(/\.$/, '')
+					
+					return response.answer.select{|record| record[0].to_s == name}.collect{|record| record[2].address}
+				end
+				
+				sleep 0.01
 			end
+			
+			abort ResolutionFailure.new("No server replied.")
 		end
 		
 		def request_timeout
@@ -139,11 +143,11 @@ module RubyDNS
 		end
 		
 		def try_udp_server(request, host, port)
-			request.socket = Celluloid::IO::UDPSocket.new
+			socket = UDPSocket.new
 			
-			request.socket.send(request.packet, 0, host, port)
+			socket.send(request.packet, 0, host, port)
 			
-			data, (_, remote_port) = request.socket.recvfrom(UDP_TRUNCATION_SIZE)
+			data, (_, remote_port) = socket.recvfrom(UDP_TRUNCATION_SIZE)
 			# Need to check host, otherwise security issue.
 			
 			# May indicate some kind of spoofing attack:
@@ -153,15 +157,19 @@ module RubyDNS
 			
 			message = RubyDNS::decode_message(data)
 		ensure
-			request.finish
+			socket.close if socket
 		end
 		
 		def try_tcp_server(request, host, port)
-			request.socket = Celluloid::IO::TCPSocket.new(host, port)
+			begin
+				socket = TCPSocket.new(host, port)
+			rescue Errno::EALREADY
+				raise IOError.new("Could not connect to remote host!")
+			end
 			
-			StreamTransport.write_chunk(request.socket, request.packet)
+			StreamTransport.write_chunk(socket, request.packet)
 			
-			input_data = StreamTransport.read_chunk(request.socket)
+			input_data = StreamTransport.read_chunk(socket)
 			
 			message = RubyDNS::decode_message(input_data)
 		rescue Errno::ECONNREFUSED => error
@@ -171,7 +179,7 @@ module RubyDNS
 		rescue Errno::ECONNRESET => error
 			raise IOError.new(error.message)
 		ensure
-			request.finish
+			socket.close if socket
 		end
 		
 		# Manages a single DNS question message across one or more servers.
@@ -192,25 +200,12 @@ module RubyDNS
 			attr :packet
 			attr :logger
 			
-			attr_accessor :socket
-			
 			def each(&block)
 				@servers.each do |server|
 					next if @packet.bytesize > UDP_TRUNCATION_SIZE
 					
 					yield server
 				end
-			end
-			
-			def finish
-				if @socket
-					@socket.close
-					@socket = nil
-				end
-			end
-			
-			def cancel
-				finish
 			end
 
 			def update_id!(id)
