@@ -81,16 +81,15 @@ This is the best way to integrate with other projects.
 
 ## Performance
 
-We welcome additional benchmarks and feedback regarding RubyDNS performance.
+We welcome additional benchmarks and feedback regarding RubyDNS performance. To check the current performance results, consult the [travis build job output](https://travis-ci.org/ioquatix/rubydns).
 
 ### Server
 
-The performance is on the same magnitude as `bind9` however `bind9` supports multiple CPUs and thus can scale more easily than RubyDNS using MRI. Some basic benchmarks resolving 1000 names concurrently, repeated 5 times, using `RubyDNS::Resolver` gives the following:
+The performance is on the same magnitude as `bind9`. Some basic benchmarks resolving 1000 names concurrently, repeated 5 times, using `RubyDNS::Resolver` gives the following:
 
-	Testing server performance...
 	                           user     system      total        real
-	RubyDNS::Server        1.040000   0.320000   1.360000 (  6.469213)
-	Bind9                  1.940000   0.120000   2.060000 (  2.062983)
+	RubyDNS::Server        4.280000   0.450000   4.730000 (  4.854862)
+	Bind9                  4.970000   0.520000   5.490000 (  5.541213)
 
 These benchmarks are included in the unit tests. To test bind9 performance, it must be installed and `which named` must return the executable.
 
@@ -98,14 +97,23 @@ These benchmarks are included in the unit tests. To test bind9 performance, it m
 
 The `RubyDNS::Resolver` is highly concurrent and can resolve individual names as fast as the built in `Resolv::DNS` resolver. Because the resolver is asynchronous, when dealing with multiple names, it can work more efficiently:
 
-	Comparing resolvers...
 	                           user     system      total        real
-	RubyDNS::Resolver      0.020000   0.010000   0.030000 (  0.280679)
-	Resolv::DNS            0.030000   0.010000   0.040000 (  2.801773)
+	RubyDNS::Resolver      0.020000   0.010000   0.030000 (  0.030507)
+	Resolv::DNS            0.070000   0.010000   0.080000 (  1.465975)
 
 These benchmarks are included in the unit tests.
 
 ## Compatibility
+
+### Migrating from RubyDNS 0.8.x 0.9.x
+
+RubyDNS 0.9.0 is based on a branch which replaced EventMachine with Celluloid. This reduces the complexity in writing concurrent systems hugely, but it is also a largely untested code path. RubyDNS 0.8.x using EventMachine has been tested over 4 years now by many projects.
+
+The reason for the change is simply that EventMachine is now a dead project and no longer being maintained/supported. The ramifications of this are: no IPv6 support, crashes/segfaults in certain workloads with no workable solution going forward, and lack of integration with external libraries.
+
+The difference for authors integrating RubyDNS in a daemon should be minimal. For users integrating RubyDNS into an existing system, you need to be aware of the contracts imposed by Celluloid, namely, whether it affects other parts of your system. Some areas of Celluloid are well developed, others are still needing attention (e.g. how it handles forking child processes). We expect the 0.8 branch should remain stable for a long time, but 0.9 branch will eventually become the 1.0 release.
+
+The benefits of using Celluloid include: fault tolerance, high performance, scalability across multiple hardware threads (when using Rubinius or JRuby), simpler integration with 3rd party data (e.g. `defer` has now been removed since it isn't necessary with celluloid).
 
 ### Migrating from RubyDNS 0.7.x to 0.8.x
 
