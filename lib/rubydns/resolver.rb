@@ -64,7 +64,7 @@ module RubyDNS
 		
 		# Yields a list of `Resolv::IPv4` and `Resolv::IPv6` addresses for the given `name` and `resource_class`. Raises a ResolutionFailure if no severs respond.
 		def addresses_for(name, resource_class = Resolv::DNS::Resource::IN::A, options = {})
-			(options[:retries] || 3).times do
+			(options[:retries] || 5).times do
 				response = query(name, resource_class)
 				
 				if response
@@ -74,6 +74,7 @@ module RubyDNS
 					return response.answer.select{|record| record[0].to_s == name}.collect{|record| record[2].address}
 				end
 				
+				# Wait 10ms before trying again:
 				sleep 0.01
 			end
 			
