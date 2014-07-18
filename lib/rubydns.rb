@@ -33,12 +33,18 @@ module RubyDNS
 		
 		supervisor.actors.first.run
 		
-		trap("INT") { supervisor.terminate; exit }
-		
 		if options[:asynchronous]
 			return supervisor
 		else
-			sleep
+			read, write = IO.pipe
+
+			trap(:INT) {
+				write.puts
+			}
+
+			IO.select([read])
+			
+			supervisor.terminate
 		end
 	end
 end
