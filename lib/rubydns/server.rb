@@ -122,11 +122,29 @@ module RubyDNS
 		
 			# Setup server sockets
 			interfaces.each do |spec|
-				@logger.info "Listening on #{spec.join(':')}"
-				if spec[0] == :udp
-					EventMachine.open_datagram_socket(spec[1], spec[2], UDPHandler, self)
-				elsif spec[0] == :tcp
-					EventMachine.start_server(spec[1], spec[2], TCPHandler, self)
+				if spec.is_a?(BasicSocket)
+					spec.do_not_reverse_lookup
+					optval = spec.getsockopt(Socket::SOL_SOCKET, Socket::SO_TYPE)
+					protocol = optval.unpack("i")[0]
+					ip = spec.local_address.ip_address
+					port = spec.local_address.ip_port
+					case protocol
+					when Socket::SOCK_DGRAM
+						@logger.info "Attaching to pre-existing UDP socket #{ip}:#{port}"
+						EventMachine.attach(spec, UDPHandler, self)
+					when Socket::SOCK_STREAM
+						@logger.info "Attaching to pre-existing TCP socket #{ip}:#{port}"
+						EventMachine.attach(spec, TCPHandler, self)
+					else
+						@logger.error "Ignoring unknown socket protocol: #{protocol}"
+					end
+				else
+					@logger.info "Listening on #{spec.join(':')}"
+					if spec[0] == :udp
+						EventMachine.open_datagram_socket(spec[1], spec[2], UDPHandler, self)
+					elsif spec[0] == :tcp
+						EventMachine.start_server(spec[1], spec[2], TCPHandler, self)
+					end
 				end
 			end
 		
