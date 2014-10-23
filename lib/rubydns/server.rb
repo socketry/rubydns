@@ -24,6 +24,17 @@ require_relative 'transaction'
 require_relative 'logger'
 
 module RubyDNS
+	class UDPSocketWrapper < Celluloid::IO::UDPSocket
+		def initialize(socket)
+			@socket = socket
+		end
+	end
+	
+	class TCPServerWrapper < Celluloid::IO::TCPServer
+		def initialize(server)
+			@server = server
+		end
+	end
 	
 	class Server
 		include Celluloid::IO
@@ -122,11 +133,27 @@ module RubyDNS
 			
 			# Setup server sockets
 			@interfaces.each do |spec|
-				@logger.info "<> Listening on #{spec.join(':')}"
-				
-				if spec[0] == :udp
+				if spec.is_a?(BasicSocket)
+					spec.do_not_reverse_lookup
+					protocol = spec.getsockopt(Socket::SOL_SOCKET, Socket::SO_TYPE).unpack("i")[0]
+					ip = spec.local_address.ip_address
+					port = spec.local_address.ip_port
+					
+					case protocol
+					when Socket::SOCK_DGRAM
+						@logger.info "<> Attaching to pre-existing UDP socket #{ip}:#{port}"
+						link UDPSocketHandler.new(self, UDPSocketWrapper.new(spec))
+					when Socket::SOCK_STREAM
+						@logger.info "<> Attaching to pre-existing TCP socket #{ip}:#{port}"
+						link TCPSocketHandler.new(self, TCPServerWrapper.new(spec))
+					else
+						raise ArgumentError.new("Unknown socket protocol: #{protocol}")
+					end
+				elsif spec[0] == :udp
+					@logger.info "<> Listening on #{spec.join(':')}"
 					link UDPHandler.new(self, spec[1], spec[2])
 				elsif spec[0] == :tcp
+					@logger.info "<> Listening on #{spec.join(':')}"
 					link TCPHandler.new(self, spec[1], spec[2])
 				else
 					raise ArgumentError.new("Invalid connection specification: #{spec.inspect}")

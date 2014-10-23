@@ -23,15 +23,10 @@ require_relative 'transport'
 module RubyDNS
 	class GenericHandler
 		include Celluloid::IO
-		finalizer :finalize
 		
 		def initialize(server)
 			@server = server
 			@logger = @server.logger || Celluloid.logger
-		end
-		
-		def finalize
-			@socket.close if @socket
 		end
 		
 		def error_response(query = nil, code = Resolv::DNS::RCode::ServFail)
@@ -71,14 +66,13 @@ module RubyDNS
 	end
 	
 	# Handling incoming UDP requests, which are single data packets, and pass them on to the given server.
-	class UDPHandler < GenericHandler
+	class UDPSocketHandler < GenericHandler
 		include Celluloid::IO
 		
-		def initialize(server, host, port)
+		def initialize(server, socket)
 			super(server)
 			
-			@socket = UDPSocket.new
-			@socket.bind(host, port)
+			@socket = socket
 			
 			async.run
 		end
@@ -128,11 +122,26 @@ module RubyDNS
 		end
 	end
 	
-	class TCPHandler < GenericHandler
+	class UDPHandler < UDPSocketHandler
 		def initialize(server, host, port)
+			socket = UDPSocket.new
+			socket.bind(host, port)
+			
+			super(server, socket)
+		end
+		
+		finalizer :finalize
+		
+		def finalize
+			@socket.close if @socket
+		end
+	end
+	
+	class TCPSocketHandler < GenericHandler
+		def initialize(server, socket)
 			super(server)
 			
-			@socket = TCPServer.new(host, port)
+			@socket = socket
 			
 			async.run
 		end
@@ -158,6 +167,20 @@ module RubyDNS
 			@logger.warn "<> Could not decode incoming TCP data!"
 		ensure
 			socket.close
+		end
+	end
+	
+	class TCPHandler < TCPSocketHandler
+		def initialize(server, host, port)
+			socket = TCPServer.new(host, port)
+			
+			super(server, socket)
+		end
+		
+		finalizer :finalize
+		
+		def finalize
+			@socket.close if @socket
 		end
 	end
 end
