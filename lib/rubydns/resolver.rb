@@ -95,6 +95,9 @@ module RubyDNS
 				begin
 					response = nil
 					
+					# This may be causing a problem, perhaps try:
+					# 	after(timeout) { socket.close }
+					# https://github.com/celluloid/celluloid-io/issues/121
 					timeout(request_timeout) do
 						response = try_server(request, server)
 					end
@@ -165,6 +168,8 @@ module RubyDNS
 			begin
 				socket = TCPSocket.new(host, port)
 			rescue Errno::EALREADY
+				# This is a hack to work around faulty behaviour in celluloid-io:
+				# https://github.com/celluloid/celluloid/issues/436
 				raise IOError.new("Could not connect to remote host!")
 			end
 			
