@@ -1,0 +1,6 @@
+source 'https://rubygems.org'
+
+gem 'rubydns'
+gem "process-daemon"
+gem "nokogiri"
+gem "http"

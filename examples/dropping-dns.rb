@@ -59,7 +59,7 @@ class DroppingDaemon < Process::Daemon
 				transaction.passthrough!(R)
 			end
 		end
-  end
+	end
 end
 
 DroppingDaemon.daemonize
