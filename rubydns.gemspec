@@ -15,7 +15,7 @@ Gem::Specification.new do |spec|
 		a remote DNS server or fetched from a local cache, depending on requirements.
 
 		In addition, RubyDNS includes a high-performance asynchronous DNS resolver
-		built on top of EventMachine. This module can be used by itself in client
+		built on top of Celluloid. This module can be used by itself in client
 		applications without using the full RubyDNS server stack.
 	EOF
 	spec.summary       = "An easy to use DNS server and resolver for Ruby."
