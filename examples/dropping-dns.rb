@@ -26,7 +26,7 @@ require 'rubydns'
 require 'rubydns/system'
 
 INTERFACES = [
-  [:udp, '0.0.0.0', 5300]
+	[:udp, '0.0.0.0', 5300]
 ]
 
 # A DNS server that selectively drops queries based on the requested domain
@@ -34,39 +34,39 @@ INTERFACES = [
 # (like 'microsoft.com' or 'sco.com') return NXDomain, while all other
 # queries are passed to upstream resolvers.
 class DroppingDaemon < Process::Daemon
-  Name = Resolv::DNS::Name
-  IN = Resolv::DNS::Resource::IN
+	Name = Resolv::DNS::Name
+	IN = Resolv::DNS::Resource::IN
 
-  def startup
-    RubyDNS.run_server(listen: INTERFACES) do
-      # Fail the resolution of certain domains ;)
-      match(/(m?i?c?r?o?s?o?f?t)/) do |transaction, match_data|
-        if match_data[1].size > 7
-          logger.info 'Dropping domain MICROSOFT...'
-          transaction.fail!(:NXDomain)
-        else
-          # Pass the request to the otherwise handler
-          false
-        end
-      end
+	def startup
+		RubyDNS.run_server(listen: INTERFACES) do
+			# Fail the resolution of certain domains ;)
+			match(/(m?i?c?r?o?s?o?f?t)/) do |transaction, match_data|
+				if match_data[1].size > 7
+					logger.info 'Dropping domain MICROSOFT...'
+					transaction.fail!(:NXDomain)
+				else
+					# Pass the request to the otherwise handler
+					false
+				end
+			end
 
-      # Hmm....
-      match(/^(.+\.)?sco\./) do |transaction|
-        logger.info 'Dropping domain SCO...'
-        transaction.fail!(:NXDomain)
-      end
+			# Hmm....
+			match(/^(.+\.)?sco\./) do |transaction|
+				logger.info 'Dropping domain SCO...'
+				transaction.fail!(:NXDomain)
+			end
 
-      # Default DNS handler
-      otherwise do |transaction|
-        logger.info 'Passing DNS request upstream...'
-        transaction.passthrough!(DroppingDaemon.fallback_resolver)
-      end
-    end
-  end
+			# Default DNS handler
+			otherwise do |transaction|
+				logger.info 'Passing DNS request upstream...'
+				transaction.passthrough!(DroppingDaemon.fallback_resolver)
+			end
+		end
+	end
 
-  def self.fallback_resolver
-    @resolver ||= RubyDNS::Resolver.new(RubyDNS::System.nameservers)
-  end
+	def self.fallback_resolver
+		@resolver ||= RubyDNS::Resolver.new(RubyDNS::System.nameservers)
+	end
 end
 
 DroppingDaemon.daemonize

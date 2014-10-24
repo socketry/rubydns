@@ -28,7 +28,7 @@ require 'rubydns'
 require 'rubydns/system'
 
 INTERFACES = [
-  [:udp, '0.0.0.0', 5300]
+	[:udp, '0.0.0.0', 5300]
 ]
 
 # Path to the GeoIP file downloaded from
@@ -36,7 +36,7 @@ INTERFACES = [
 # If you have renamed the ungzipped file, or have placed it somewhere other than
 # the repository root directory you will need to update this path.
 PATH_TO_GEOIP_DAT_FILE =
-  File.expand_path('../GeoIP.dat', File.dirname(__FILE__))
+	File.expand_path('../GeoIP.dat', File.dirname(__FILE__))
 
 # A sample DNS daemon that demonstrates how to use RubyDNS to build responses
 # that vary based on the geolocation of the requesting peer.  Clients of
@@ -51,67 +51,67 @@ PATH_TO_GEOIP_DAT_FILE =
 # For more information, please see http://www.maxmind.com/en/geolite and
 # http://geoip.rubyforge.org
 class GeoIPDNS < Process::Daemon
-  GEO = GeoIP.new(PATH_TO_GEOIP_DAT_FILE)
+	GEO = GeoIP.new(PATH_TO_GEOIP_DAT_FILE)
 
-  Name = Resolv::DNS::Name
-  IN = Resolv::DNS::Resource::IN
+	Name = Resolv::DNS::Name
+	IN = Resolv::DNS::Resource::IN
 
-  def startup
-    RubyDNS.run_server(listen: INTERFACES) do
-      match(//, IN::A) do |transaction|
-        logger.debug 'In block'
+	def startup
+		RubyDNS.run_server(listen: INTERFACES) do
+			match(//, IN::A) do |transaction|
+				logger.debug 'In block'
 
-        # The IP Address of the peer is stored in the transaction options
-        # with the key :peer
-        ip_address = transaction.options[:peer]
-        logger.debug "Looking up geographic information for peer #{ip_address}"
-        location = GeoIPDNS.ip_to_location(ip_address)
+				# The IP Address of the peer is stored in the transaction options
+				# with the key :peer
+				ip_address = transaction.options[:peer]
+				logger.debug "Looking up geographic information for peer #{ip_address}"
+				location = GeoIPDNS.ip_to_location(ip_address)
 
-        if location
-          logger.debug "Found location #{location} for #{ip_address}"
-        else
-          logger.debug "Could not resolve location for #{ip_address}"
-        end
+				if location
+					logger.debug "Found location #{location} for #{ip_address}"
+				else
+					logger.debug "Could not resolve location for #{ip_address}"
+				end
 
-        code = location ? location.continent_code : nil
-        answer = GeoIPDNS.answer_for_continent_code(code)
-        logger.debug "Answer is #{answer}"
-        transaction.respond!(answer)
-      end
+				code = location ? location.continent_code : nil
+				answer = GeoIPDNS.answer_for_continent_code(code)
+				logger.debug "Answer is #{answer}"
+				transaction.respond!(answer)
+			end
 
-      # Default DNS handler
-      otherwise do |transaction|
-        logger.debug 'In otherwise'
-        transaction.passthrough!(GeoIPDNS.fallback_resolver)
-      end
-    end
-  end
+			# Default DNS handler
+			otherwise do |transaction|
+				logger.debug 'In otherwise'
+				transaction.passthrough!(GeoIPDNS.fallback_resolver)
+			end
+		end
+	end
 
-  def self.fallback_resolver
-    @resolver ||= RubyDNS::Resolver.new(RubyDNS::System.nameservers)
-  end
+	def self.fallback_resolver
+		@resolver ||= RubyDNS::Resolver.new(RubyDNS::System.nameservers)
+	end
 
-  # Maps each continent code to a fixed IP address for the response.
-  # A simple mapper to demonstrate the behavior.
-  def self.answer_for_continent_code(code)
-    case code
-    when 'AF' then '1.1.1.1'
-    when 'AN' then '1.1.2.1'
-    when 'AS' then '1.1.3.1'
-    when 'EU' then '1.1.4.1'
-    when 'NA' then '1.1.5.1'
-    when 'OC' then '1.1.6.1'
-    when 'SA' then '1.1.7.1'
-    else '1.1.8.1'
-    end
-  end
+	# Maps each continent code to a fixed IP address for the response.
+	# A simple mapper to demonstrate the behavior.
+	def self.answer_for_continent_code(code)
+		case code
+		when 'AF' then '1.1.1.1'
+		when 'AN' then '1.1.2.1'
+		when 'AS' then '1.1.3.1'
+		when 'EU' then '1.1.4.1'
+		when 'NA' then '1.1.5.1'
+		when 'OC' then '1.1.6.1'
+		when 'SA' then '1.1.7.1'
+		else '1.1.8.1'
+		end
+	end
 
-  # Finds the continent code for the specified IP address.
-  # Returns nil if the IP address cannot be mapped to a location.
-  def self.ip_to_location(ip_address)
-    return nil unless ip_address
-    GEO.country(ip_address)
-  end
+	# Finds the continent code for the specified IP address.
+	# Returns nil if the IP address cannot be mapped to a location.
+	def self.ip_to_location(ip_address)
+		return nil unless ip_address
+		GEO.country(ip_address)
+	end
 end
 
 GeoIPDNS.daemonize

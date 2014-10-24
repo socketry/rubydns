@@ -38,83 +38,83 @@ require 'digest/md5'
 RUN_AS = 'daemon'
 
 if Process::Daemon::Privileges.current_user != 'root'
-  $stderr.puts 'Sorry, this command needs to be run as root!'
-  exit 1
+	$stderr.puts 'Sorry, this command needs to be run as root!'
+	exit 1
 end
 
 require 'http'
 
 # Celluloid::IO fetcher to retrieve URLs.
 class HttpFetcher
-  include Celluloid::IO
+	include Celluloid::IO
 
-  def get(url)
-    # Note: For SSL support specify:
-    # 	ssl_socket_class: Celluloid::IO::SSLSocket
-    HTTP.get(url, socket_class: Celluloid::IO::TCPSocket)
-  end
+	def get(url)
+		# Note: For SSL support specify:
+		# 	ssl_socket_class: Celluloid::IO::SSLSocket
+		HTTP.get(url, socket_class: Celluloid::IO::TCPSocket)
+	end
 end
 
 # Encapsulates the logic for fetching information from Wikipedia.
 module Wikipedia
-  def self.summary_url(title)
-    "http://en.wikipedia.org/w/api.php?action=parse&page=#{CGI.escape title}&prop=text&section=0&format=json"
-  end
+	def self.summary_url(title)
+		"http://en.wikipedia.org/w/api.php?action=parse&page=#{CGI.escape title}&prop=text&section=0&format=json"
+	end
 
-  def self.extract_summary(json_text)
-    document = JSON.parse(json_text)
-    return Nokogiri::HTML(document['parse']['text']['*']).css('p')[0].text
-  rescue
-    return 'Invalid Article.'
-  end
+	def self.extract_summary(json_text)
+		document = JSON.parse(json_text)
+		return Nokogiri::HTML(document['parse']['text']['*']).css('p')[0].text
+	rescue
+		return 'Invalid Article.'
+	end
 end
 
 # A DNS server that queries Wikipedia and returns summaries for
 # specifically crafted queries.
 class WikipediaDNS < Process::Daemon
-  Name = Resolv::DNS::Name
-  IN = Resolv::DNS::Resource::IN
+	Name = Resolv::DNS::Name
+	IN = Resolv::DNS::Resource::IN
 
-  def startup
-    # Don't buffer output (for debug purposes)
-    $stderr.sync = true
+	def startup
+		# Don't buffer output (for debug purposes)
+		$stderr.sync = true
 
-    stats = { requested: 0 }
+		stats = { requested: 0 }
 
-    fetcher = HttpFetcher.new
+		fetcher = HttpFetcher.new
 
-    # Start the RubyDNS server
-    RubyDNS.run_server do
-      on(:start) do
-        Process::Daemon::Privileges.change_user(RUN_AS)
-        if ARGV.include?('--debug')
-          @logger.level = Logger::DEBUG
-        else
-          @logger.level = Logger::WARN
-        end
-      end
+		# Start the RubyDNS server
+		RubyDNS.run_server do
+			on(:start) do
+				Process::Daemon::Privileges.change_user(RUN_AS)
+				if ARGV.include?('--debug')
+					@logger.level = Logger::DEBUG
+				else
+					@logger.level = Logger::WARN
+				end
+			end
 
-      match(/stats\.wikipedia/, IN::TXT) do |transaction|
-        transaction.respond!(*stats.inspect.chunked)
-      end
+			match(/stats\.wikipedia/, IN::TXT) do |transaction|
+				transaction.respond!(*stats.inspect.chunked)
+			end
 
-      match(/(.+)\.wikipedia/, IN::TXT) do |transaction, match_data|
-        title = match_data[1]
-        stats[:requested] += 1
+			match(/(.+)\.wikipedia/, IN::TXT) do |transaction, match_data|
+				title = match_data[1]
+				stats[:requested] += 1
 
-        response = fetcher.get(Wikipedia.summary_url(title))
+				response = fetcher.get(Wikipedia.summary_url(title))
 
-        summary =
-          Wikipedia.extract_summary(response).force_encoding('ASCII-8BIT')
-        transaction.respond!(*summary.chunked)
-      end
+				summary =
+					Wikipedia.extract_summary(response).force_encoding('ASCII-8BIT')
+				transaction.respond!(*summary.chunked)
+			end
 
-      # Default DNS handler
-      otherwise do |transaction|
-        transaction.fail!(:NXDomain)
-      end
-    end
-  end
+			# Default DNS handler
+			otherwise do |transaction|
+				transaction.fail!(:NXDomain)
+			end
+		end
+	end
 end
 
 WikipediaDNS.daemonize
