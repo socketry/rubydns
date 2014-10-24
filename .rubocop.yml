@@ -1,0 +1,6 @@
+Style/Tab:
+  Enabled: false
+Style/IndentationConsistency:
+  Enabled: false
+Style/IndentationWidth:
+  Enabled: false
