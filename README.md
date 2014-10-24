@@ -45,7 +45,7 @@ This is copied from `test/examples/test-dns-2.rb`. It has been simplified slight
 
 	# Start the RubyDNS server
 	RubyDNS::run_server(:listen => INTERFACES) do
-		match(/test.mydomain.org/, IN::A) do |transaction|
+		match(/test\.mydomain\.org/, IN::A) do |transaction|
 			transaction.respond!("10.0.0.80")
 		end
 
