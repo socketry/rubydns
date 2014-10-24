@@ -33,7 +33,7 @@ INTERFACES = [
 # name.  Queries for domains that match specified regular expresssions
 # (like 'microsoft.com' or 'sco.com') return NXDomain, while all other
 # queries are passed to upstream resolvers.
-class DroppingDaemon < Process::Daemon
+class FlakeyDNS < Process::Daemon
 	Name = Resolv::DNS::Name
 	IN = Resolv::DNS::Resource::IN
 
@@ -59,7 +59,7 @@ class DroppingDaemon < Process::Daemon
 			# Default DNS handler
 			otherwise do |transaction|
 				logger.info 'Passing DNS request upstream...'
-				transaction.passthrough!(DroppingDaemon.fallback_resolver)
+				transaction.passthrough!(FlakeyDNS.fallback_resolver)
 			end
 		end
 	end
@@ -69,4 +69,4 @@ class DroppingDaemon < Process::Daemon
 	end
 end
 
-DroppingDaemon.daemonize
+FlakeyDNS.daemonize

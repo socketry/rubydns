@@ -4,23 +4,23 @@ This directory contains several examples of customized RubyDNS servers,
 intended to demonstrate how RubyDNS can be easily customized to specific
 needs.
 
-## DroppingDaemon (dropping-dns.rb)
+## FlakeyDNS (flakey-dns.rb)
 
-A DNS server that selectively drops queries based on the requested domain name.  Queries for domains that match specified regular expresssions (like 'microsoft.com' or 'sco.com') return NXDomain, while all other queries are passed to upstream resolvers.
+A DNS server that selectively drops queries based on the requested domain name.  Queries for domains that match specified regular expressions (like 'microsoft.com' or 'sco.com') return NXDomain, while all other queries are passed to upstream resolvers.
 
 By default this server will listen for UDP requests on port 5300 and does not need to be started as root.
 
 To start the server, ensure that you're in the examples subdirectory and type
 
     bundle
-    bundle exec ./dropping-dns.rb
+    bundle exec ./flakey-dns.rb
 
 To see it in action you can then query some domains.  For example,
 
     dig @localhost -p 5300 slashdot.org -t A
     dig @localhost -p 5300 www.hackernews.com -t A
 
-give the correct results.  But
+give the correct results. But
 
     dig @localhost -p 5300 microsoft.com -t A
     dig @localhost -p 5300 www.microsoft.com -t A
@@ -31,12 +31,17 @@ all give an NXDomain result.
 ## FortuneDNS (fortune-dns.rb)
 
 A DNS server that allows a client to generate fortunes and fetch them with subsequent requests.  The server
-'remembers' the fortunes it generates, and can serve them to future requests.
+'remembers' the fortunes it generates, and can serve them to future requests. The reason for this is because most fortunes won't fit over UDP (maximum size 512 bytes) and the client will request the same fortune via TCP.
 
 You will need to have the `fortune` app installed on your system.  It comes installed by default on
 most Linux distributions, and can be installed on a Mac with Homebrew by typing:
 
+    # Homebrew
     brew install fortune
+    # MacPorts
+    sudo port install fortune
+    # Arch Linux
+    sudo pacman -S fortune-mod
 
 By default this server will listen for UDP and TCP requests on port 53, and needs to be started as root.  It
 assumes the existence of a user 'daemon', as whom the process will run.  If such a user doesn't exist on your
@@ -85,8 +90,8 @@ cannot be resolved to a location, and so will always yield the unknown result.
 This daemon requires the file downloaded from
 [MaxMind](http://geolite.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz)
 For more information on the GeoIP library, please click [here](http://www.maxmind.com/en/geolite)
-or [here](http://geoip.rubyforge.org).  This file should be unzipped and placed in the
-repository root directory.
+or [here](https://github.com/cjheath/geoip).  This file should be unzipped and placed in the
+examples root directory, i.e. `examples/GeoLiteCountry.dat`.
 
 By default this server will listen for UDP requests on port 5300 and does not need to be started as root.
 
@@ -128,3 +133,5 @@ To query Wikipedia, pick a term - say, 'helium' - and make a DNS query like
 The answer section should contain the summary for this topic from Wikipedia
 
     helium.wikipedia. 86400 IN  TXT "Helium is a chemical element with symbol He and atomic number 2. It is a colorless, odorless, tasteless, non-toxic, inert, monatomic gas that heads the noble gas group in the periodic table. Its boiling and melting points are the lowest among the elements" " and it exists only as a gas except in extreme conditions."
+
+Long blocks of text cannot be easily replied in DNS as they must be chunked into segments at most 255 bytes. Long replies must be sent back using TCP.
