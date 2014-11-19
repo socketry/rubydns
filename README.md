@@ -1,4 +1,5 @@
 # RubyDNS
+[![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/ioquatix/rubydns?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 RubyDNS is a high-performance DNS server which can be easily integrated into other projects or used as a stand-alone daemon. By default it uses rule-based pattern matching. Results can be hard-coded, computed, fetched from a remote DNS server or fetched from a local cache, depending on requirements.
 
