@@ -13,7 +13,7 @@ By default this server will listen for UDP requests on port 5300 and does not ne
 To start the server, ensure that you're in the examples subdirectory and type
 
     bundle
-    bundle exec ./flakey-dns.rb
+    bundle exec ./flakey-dns.rb start
 
 To see it in action you can then query some domains.  For example,
 
@@ -51,7 +51,7 @@ system.
 To start the server, ensure that you're in the examples subdirectory and type
 
     bundle
-    sudo bundle exec ./fortune-dns.rb
+    sudo bundle exec ./fortune-dns.rb start
 
 To create a new fortune type
 
@@ -98,7 +98,7 @@ By default this server will listen for UDP requests on port 5300 and does not ne
 To start the server, ensure that you're in the examples subdirectory and type
 
     bundle
-    sudo bundle exec ./geoip-dns.rb
+    sudo bundle exec ./geoip-dns.rb start
 
 To see the behavior, run a DNS query against the server where you are running the GeoIPDNS
 daemon.  Depending on the continent to which the client machine's IP address is mapped,
@@ -124,7 +124,7 @@ system.
 To start the server, ensure that you're in the examples subdirectory and type
 
     bundle
-    sudo bundle exec ./wikipedia-dns.rb
+    sudo bundle exec ./wikipedia-dns.rb start
 
 To query Wikipedia, pick a term - say, 'helium' - and make a DNS query like
 

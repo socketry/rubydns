@@ -58,6 +58,8 @@ class GeoIPDNS < Process::Daemon
 
 	def startup
 		RubyDNS.run_server(listen: INTERFACES) do
+			fallback_resolver_supervisor =
+			  RubyDNS::Resolver.supervise(RubyDNS::System.nameservers)
 			match(//, IN::A) do |transaction|
 				logger.debug 'In block'
 
@@ -82,13 +84,9 @@ class GeoIPDNS < Process::Daemon
 			# Default DNS handler
 			otherwise do |transaction|
 				logger.debug 'In otherwise'
-				transaction.passthrough!(GeoIPDNS.fallback_resolver)
+				transaction.passthrough!(fallback_resolver_supervisor.actors.first)
 			end
 		end
-	end
-
-	def self.fallback_resolver
-		@resolver ||= RubyDNS::Resolver.new(RubyDNS::System.nameservers)
 	end
 
 	# Maps each continent code to a fixed IP address for the response.
