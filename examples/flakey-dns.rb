@@ -39,6 +39,10 @@ class FlakeyDNS < Process::Daemon
 
 	def startup
 		RubyDNS.run_server(listen: INTERFACES) do
+			# Use a Celluloid supervisor so the system recovers if the actor dies
+			fallback_resolver_supervisor =
+			  RubyDNS::Resolver.supervise(RubyDNS::System.nameservers)
+
 			# Fail the resolution of certain domains ;)
 			match(/(m?i?c?r?o?s?o?f?t)/) do |transaction, match_data|
 				if match_data[1].size > 7
@@ -59,13 +63,9 @@ class FlakeyDNS < Process::Daemon
 			# Default DNS handler
 			otherwise do |transaction|
 				logger.info 'Passing DNS request upstream...'
-				transaction.passthrough!(FlakeyDNS.fallback_resolver)
+				transaction.passthrough!(fallback_resolver_supervisor.actors.first)
 			end
 		end
-	end
-
-	def self.fallback_resolver
-		@resolver ||= RubyDNS::Resolver.new(RubyDNS::System.nameservers)
 	end
 end
 

@@ -81,7 +81,8 @@ class WikipediaDNS < Process::Daemon
 
 		stats = { requested: 0 }
 
-		fetcher = HttpFetcher.new
+		# Use a Celluloid supervisor so the system recovers if the actor dies
+		fetcher = HttpFetcher.supervise
 
 		# Start the RubyDNS server
 		RubyDNS.run_server do
@@ -102,7 +103,7 @@ class WikipediaDNS < Process::Daemon
 				title = match_data[1]
 				stats[:requested] += 1
 
-				response = fetcher.get(Wikipedia.summary_url(title))
+				response = fetcher.actors.first.get(Wikipedia.summary_url(title))
 
 				summary =
 					Wikipedia.extract_summary(response).force_encoding('ASCII-8BIT')
