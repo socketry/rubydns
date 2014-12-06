@@ -107,7 +107,7 @@ These benchmarks are included in the unit tests.
 
 ## Compatibility
 
-### Migrating from RubyDNS 0.8.x 0.9.x
+### Migrating from RubyDNS 0.8.x to 0.9.x
 
 RubyDNS 0.9.0 is based on a branch which replaced EventMachine with Celluloid. This reduces the complexity in writing concurrent systems hugely, but it is also a largely untested code path. RubyDNS 0.8.x using EventMachine has been tested over 4 years now by many projects.
 
