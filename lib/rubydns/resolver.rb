@@ -147,7 +147,8 @@ module RubyDNS
 		end
 		
 		def try_udp_server(request, host, port)
-			socket = UDPSocket.new
+			family = RubyDNS::address_family(host)
+			socket = UDPSocket.new(family)
 			
 			socket.send(request.packet, 0, host, port)
 			

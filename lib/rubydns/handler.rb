@@ -124,7 +124,9 @@ module RubyDNS
 	
 	class UDPHandler < UDPSocketHandler
 		def initialize(server, host, port)
-			socket = UDPSocket.new
+			family = RubyDNS::address_family(host)
+			socket = UDPSocket.new(family)
+			
 			socket.bind(host, port)
 			
 			super(server, socket)

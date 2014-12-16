@@ -19,10 +19,15 @@
 # THE SOFTWARE.
 
 require 'stringio'
+require 'ipaddr'
 
 require_relative 'message'
 
 module RubyDNS
+	def self.address_family(host)
+		return IPAddr.new(host).family
+	end
+	
 	# A helper class for processing incoming network data.
 	class BinaryStringIO < StringIO
 		def initialize
