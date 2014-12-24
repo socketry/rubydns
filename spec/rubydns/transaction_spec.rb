@@ -52,6 +52,17 @@ module RubyDNS::TransactionSpec
 			
 			expect(transaction.response.answer.size).to be > 0
 		end
+
+                it "should return a block on passthrough if requested" do                                                                                                                                                                                                      
+                        transaction = RubyDNS::Transaction.new(server, query, question, IN::A, response)                                                                                                                                                                       
+                        response_object = ''                                                                                                                                                                                                                                   
+                        expect(transaction.response.answer.size).to be 0                                                                                                                                                                                                       
+                                                                                                                                                                                                                                                                               
+                        transaction.passthrough!(resolver) do | reply, reply_name |                                                                                                                                                                                            
+                           response_object = reply                                                                                                                                                                                                                             
+                        end                                                                                                                                                                                                                                                    
+                        expect(response_object.length).to be > 0                                                                                                                                                                                                               
+                end
 		
 		it "should fail the request" do
 			transaction = RubyDNS::Transaction.new(server, query, question, IN::A, response)
