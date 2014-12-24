@@ -61,7 +61,7 @@ module RubyDNS::TransactionSpec
                         transaction.passthrough!(resolver) do | reply, reply_name |                                                                                                                                                                                            
                            response_object = reply                                                                                                                                                                                                                             
                         end                                                                                                                                                                                                                                                    
-                        expect(response_object.length).to be > 0                                                                                                                                                                                                               
+                        expect(response_object.answer.length).to be > 0  
                 end
 		
 		it "should fail the request" do
