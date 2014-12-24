@@ -76,7 +76,6 @@ module RubyDNS::TransactionSpec
                            response_object = reply
                         end
                         expect(response_object.answer.length).to be > 0
-                        p response_object.answer
                 end
 		
 		it "should fail the request" do
