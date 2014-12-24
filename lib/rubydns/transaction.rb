@@ -80,14 +80,14 @@ module RubyDNS
 		# If the resolver can't reach upstream servers, `fail!(:ServFail)` is invoked.
 		def passthrough!(resolver, options = {}, &block)
 			if @query.rd || options[:force] || options[:name]
-				passthrough(resolver, options) do |reply, reply_name|
+				passthrough(resolver, options) do |reply|
 				   if reply
 					# Recursion is available and is being used:
 					# See issue #26 for more details.
 					@response.ra = 1
 					@response.merge!(reply)
                                         if block_given?
-                                           yield reply, reply_name
+                                           yield reply
                                         end 
 				    else
 					fail!(:ServFail)
@@ -107,10 +107,10 @@ module RubyDNS
 			query_name = options[:name] || name
 			query_resource_class = options[:resource_class] || resource_class
 			
-			reply, reply_name = resolver.query(query_name, query_resource_class)
+			reply = resolver.query(query_name, query_resource_class)
                         
                         if reply
-                           yield reply, reply_name
+                           yield reply
                         else
                            failure!(:NXDomain)
                         end
