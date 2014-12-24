@@ -80,16 +80,19 @@ module RubyDNS
 		# If the resolver can't reach upstream servers, `fail!(:ServFail)` is invoked.
 		def passthrough!(resolver, options = {}, &block)
 			if @query.rd || options[:force] || options[:name]
-				response = passthrough(resolver, options)
-				
-				if response
+				passthrough(resolver, options) do |reply|
+				   if reply
 					# Recursion is available and is being used:
 					# See issue #26 for more details.
 					@response.ra = 1
-					@response.merge!(response)
-				else
+					@response.merge!(reply)
+                                        if block_given?
+                                           yield reply
+                                        end 
+				    else
 					fail!(:ServFail)
-				end
+				    end
+                                end
 			else
 				fail!(:Refused)
 			end
@@ -100,11 +103,17 @@ module RubyDNS
 		# A block must be supplied, and provided a valid response is received from the upstream server, this function yields with the reply and reply_name.
 		#
 		# If `options[:name]` is provided, this overrides the default query name sent to the upstream server. The same logic applies to `options[:resource_class]`.
-		def passthrough(resolver, options = {})
+		def passthrough(resolver, options = {}, &block)
 			query_name = options[:name] || name
 			query_resource_class = options[:resource_class] || resource_class
 			
-			resolver.query(query_name, query_resource_class)
+			reply = resolver.query(query_name, query_resource_class)
+                        
+                        if reply
+                           yield reply
+                        else
+                           failure!(:NXDomain)
+                        end
 		end
 		
 		# Respond to the given query with a resource record. The arguments to this function depend on the `resource_class` requested. This function instantiates the resource class with the supplied arguments, and then passes it to {#append!}.
