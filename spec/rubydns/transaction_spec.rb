@@ -53,6 +53,30 @@ module RubyDNS::TransactionSpec
 			expect(transaction.response.answer.size).to be > 0
 		end
 		
+		it "should return a response on passthrough" do
+			transaction = RubyDNS::Transaction.new(server, query, question, IN::A, response)
+			
+			expect(transaction.response.answer.size).to be 0
+			
+			response = transaction.passthrough(resolver)
+			
+			expect(response.answer.length).to be > 0
+		end
+		
+		it "should call the block with the response when invoking passthrough!" do
+			transaction = RubyDNS::Transaction.new(server, query, question, IN::A, response)
+			
+			expect(transaction.response.answer.size).to be 0
+			
+			passthrough_response = nil
+			
+			transaction.passthrough!(resolver) do |response|
+				passthrough_response = response
+			end
+			
+			expect(passthrough_response.answer.length).to be > 0
+		end
+		
 		it "should fail the request" do
 			transaction = RubyDNS::Transaction.new(server, query, question, IN::A, response)
 			

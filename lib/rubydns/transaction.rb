@@ -73,7 +73,7 @@ module RubyDNS
 		
 		# Use the given resolver to respond to the question. Uses `passthrough` to do the lookup and merges the result.
 		#
-		# If a block is supplied, this function yields with the `reply` and `reply_name` if successful. This could be used, for example, to update a cache or modify the reply.
+		# If a block is supplied, this function yields with the `response` message if successful. This could be used, for example, to update a cache or modify the reply.
 		#
 		# If recursion is not requested, the result is `fail!(:Refused)`. This check is ignored if an explicit `options[:name]` or `options[:force]` is given.
 		#
@@ -83,6 +83,8 @@ module RubyDNS
 				response = passthrough(resolver, options)
 				
 				if response
+					yield response if block_given?
+					
 					# Recursion is available and is being used:
 					# See issue #26 for more details.
 					@response.ra = 1
