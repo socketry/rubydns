@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby
+#!/usr/bin/env rspec
 
 # Copyright, 2012, by Samuel G. D. Williams. <http://www.codeotaku.com>
 # 
@@ -84,35 +84,55 @@ module RubyDNS::TransactionSpec
 			
 			expect(transaction.response.rcode).to be Resolv::DNS::RCode::NXDomain
 		end
-                it "should return AAAA record" do
-	           transaction = RubyDNS::Transaction.new(server,query,question,IN::AAAA, response)
-	           expect(transaction.response.answer.size).to be 0
-	           transaction.passthrough!(resolver)
-	           expect(/IN::AAAA/.match(transaction.response.answer[0][2].to_s))
-                end
-                it "should return MX record" do
-                   transaction = RubyDNS::Transaction.new(server,query,"google.com",IN::MX, response)
-                   expect(transaction.response.answer.size).to be 0
-                   transaction.passthrough!(resolver)
-                   expect(/IN::MX/.match(transaction.response.answer[0][2].to_s))
-                end
-                it "should return NS record" do
-                   transaction = RubyDNS::Transaction.new(server,query,"google.com",IN::NS, response)
-                   expect(transaction.response.answer.size).to be 0
-                   transaction.passthrough!(resolver)
-                   expect(/IN::NS/.match(transaction.response.answer[0][2].to_s))
-                end
-                it "should return PTR record" do
-                   transaction = RubyDNS::Transaction.new(server,query,"8.8.8.8",IN::PTR, response)
-                   expect(transaction.response.answer.size).to be 0
-                   transaction.passthrough(resolver)
-                   expect(/IN::PTR/.match(transaction.response.answer[0][2].to_s))
-                end
-                it "should return SOA record" do
-                   transaction = RubyDNS::Transaction.new(server,query,"google.com",IN::SOA, response)
-                   expect(transaction.response.answer.size).to be 0
-                   transaction.passthrough!(resolver)
-                   expect(/IN::SOA/.match(transaction.response.answer[0][2].to_s))
-                end
+		
+		it "should return AAAA record" do
+			transaction = RubyDNS::Transaction.new(server, query, question, IN::AAAA, response)
+			
+			expect(transaction.response.answer.size).to be 0
+			
+			transaction.passthrough!(resolver)
+			
+			expect(transaction.response.answer.first[2]).to be_kind_of IN::AAAA
+		end
+		
+		it "should return MX record" do
+			transaction = RubyDNS::Transaction.new(server,query,"google.com",IN::MX, response)
+			
+			expect(transaction.response.answer.size).to be 0
+			
+			transaction.passthrough!(resolver)
+			
+			expect(transaction.response.answer.first[2]).to be_kind_of IN::MX
+		end
+		
+		it "should return NS record" do
+			transaction = RubyDNS::Transaction.new(server, query, "google.com", IN::NS, response)
+			
+			expect(transaction.response.answer.size).to be 0
+			
+			transaction.passthrough!(resolver)
+			
+			expect(transaction.response.answer.first[2]).to be_kind_of IN::NS
+		end
+		
+		it "should return PTR record" do
+			transaction = RubyDNS::Transaction.new(server, query, "8.8.8.8.in-addr.arpa", IN::PTR, response)
+			
+			expect(transaction.response.answer.size).to be 0
+			
+			transaction.passthrough!(resolver)
+			
+			expect(transaction.response.answer.first[2]).to be_kind_of IN::PTR
+		end
+		
+		it "should return SOA record" do
+			transaction = RubyDNS::Transaction.new(server, query, "google.com", IN::SOA, response)
+			
+			expect(transaction.response.answer.size).to be 0
+			
+			transaction.passthrough!(resolver)
+			
+			expect(transaction.response.answer.first[2]).to be_kind_of IN::SOA
+		end
 	end
 end

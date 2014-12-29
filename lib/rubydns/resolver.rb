@@ -139,7 +139,7 @@ module RubyDNS
 				@logger.warn "[#{message.id}] Received response with incorrect message id: #{response.id}!" if @logger
 			else
 				@logger.debug "[#{message.id}] Received valid response with #{response.answer.count} answer(s)." if @logger
-		
+				
 				return true
 			end
 			
