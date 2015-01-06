@@ -23,8 +23,6 @@ require_relative 'handler'
 require 'securerandom'
 require 'celluloid/io'
 
-
-
 module RubyDNS
 	class InvalidProtocolError < StandardError
 	end
