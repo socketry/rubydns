@@ -91,14 +91,15 @@ module RubyDNS
 			name = fully_qualified_name(name)
 			
 			cache = options.fetch(:cache, {})
-			retries = options.fetch(:retries, 5)
+			retries = options.fetch(:retries, 10)
+			delay = options.fetch(:delay, 0.01)
 			
 			records = lookup(name, resource_class, cache) do |name, resource_class|
 				response = nil
 				
 				retries.times do |i|
 					# Wait 10ms before trying again:
-					sleep 0.01 if i > 0
+					sleep delay if delay and i > 0
 					
 					response = query(name, resource_class)
 					
