@@ -78,7 +78,6 @@ describe "RubyDNS Daemonized Server" do
 		resolver = RubyDNS::Resolver.new(BasicTestServer::SERVER_PORTS, search_domain: '')
 	
 		response = resolver.query("test.local")
-		puts "Response: #{response.inspect}"
 		
 		answer = response.answer.first
 		
