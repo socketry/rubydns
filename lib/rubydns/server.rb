@@ -57,7 +57,12 @@ module RubyDNS
 			
 			@logger = options[:logger] || Celluloid.logger
 			@interfaces = options[:listen] || DEFAULT_INTERFACES
+			
+			@origin = options[:origin] || '.'
 		end
+
+		# Records are relative to this origin:
+		attr_accessor :origin
 
 		attr_accessor :logger
 
@@ -91,11 +96,18 @@ module RubyDNS
 			
 			begin
 				query.question.each do |question, resource_class|
-					@logger.debug {"<#{query.id}> Processing question #{question} #{resource_class}..."}
-			
-					transaction = Transaction.new(self, query, question, resource_class, response, options)
-					
-					transaction.process
+					begin
+						question = question.without_origin(@origin)
+						
+						@logger.debug {"<#{query.id}> Processing question #{question} #{resource_class}..."}
+						
+						transaction = Transaction.new(self, query, question, resource_class, response, options)
+						
+						transaction.process
+					rescue Resolv::DNS::OriginError
+						# This is triggered if the question is not part of the specified @origin:
+						@logger.debug {"<#{query.id}> Skipping question #{question} #{resource_class} because #{$!}"}
+					end
 				end
 			rescue Celluloid::ResumableError
 				raise

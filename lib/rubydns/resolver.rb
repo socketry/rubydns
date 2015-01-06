@@ -44,7 +44,29 @@ module RubyDNS
 			
 			@options = options
 			
+			@origin = options[:origin] || nil
+			
 			@logger = options[:logger] || Celluloid.logger
+		end
+		
+		attr_accessor :origin
+		
+		def fully_qualified_name(name)
+			# If we are passed an existing deconstructed name:
+			if Resolv::DNS::Name === name
+				if name.absolute?
+					return name
+				else
+					return name.with_origin(@origin)
+				end
+			end
+			
+			# ..else if we have a string, we need to do some basic processing:
+			if name.end_with? '.'
+				return Resolv::DNS::Name.create(name)
+			else
+				return Resolv::DNS::Name.create(name).with_origin(@origin)
+			end
 		end
 
 		# Provides the next sequence identification number which is used to keep track of DNS messages.
@@ -57,28 +79,52 @@ module RubyDNS
 		def query(name, resource_class = Resolv::DNS::Resource::IN::A)
 			message = Resolv::DNS::Message.new(next_id!)
 			message.rd = 1
-			message.add_question name, resource_class
+			message.add_question fully_qualified_name(name), resource_class
 			
 			dispatch_request(message)
 		end
 		
 		# Yields a list of `Resolv::IPv4` and `Resolv::IPv6` addresses for the given `name` and `resource_class`. Raises a ResolutionFailure if no severs respond.
 		def addresses_for(name, resource_class = Resolv::DNS::Resource::IN::A, options = {})
-			(options[:retries] || 5).times do
-				response = query(name, resource_class)
+			name = fully_qualified_name(name)
+			
+			cache = options.fetch(:cache, {})
+			retries = options.fetch(:retries, 10)
+			delay = options.fetch(:delay, 0.01)
+			
+			records = lookup(name, resource_class, cache) do |name, resource_class|
+				response = nil
 				
-				if response
-					# Resolv::DNS::Name doesn't retain the trailing dot.
-					name = name.sub(/\.$/, '')
+				retries.times do |i|
+					# Wait 10ms before trying again:
+					sleep delay if delay and i > 0
 					
-					return response.answer.select{|record| record[0].to_s == name}.collect{|record| record[2].address}
+					response = query(name, resource_class)
+					
+					break if response
 				end
 				
-				# Wait 10ms before trying again:
-				sleep 0.01
+				response or abort ResolutionFailure.new("Could not resolve #{name} after #{retries} attempt(s).")
 			end
 			
-			abort ResolutionFailure.new("No server replied.")
+			addresses = []
+			
+			if records
+				records.each do |record|
+					if record.respond_to? :address
+						addresses << record.address
+					else
+						# The most common case here is that record.class is IN::CNAME and we need to figure out the address. Usually the upstream DNS server would have replied with this too, and this will be loaded from the response if possible without requesting additional information.
+						addresses += addresses_for(record.name, record.class, options.merge(cache: cache))
+					end
+				end
+			end
+			
+			if addresses.size > 0
+				return addresses
+			else
+				abort ResolutionFailure.new("Could not find any addresses for #{name}.")
+			end
 		end
 		
 		def request_timeout
@@ -90,7 +136,7 @@ module RubyDNS
 			request = Request.new(message, @servers)
 			
 			request.each do |server|
-				@logger.debug "[#{message.id}] Sending request to server #{server.inspect}" if @logger
+				@logger.debug "[#{message.id}] Sending request #{message.question.inspect} to server #{server.inspect}" if @logger
 				
 				begin
 					response = nil
@@ -120,6 +166,21 @@ module RubyDNS
 		end
 		
 		private
+		
+		# Lookup a name/resource_class record but use the records cache if possible reather than making a new request if possible.
+		def lookup(name, resource_class = Resolv::DNS::Resource::IN::A, records = {})
+			records.fetch(name) do
+				response = yield(name, resource_class)
+				
+				if response
+					response.answer.each do |name, ttl, record|
+						(records[name] ||= []) << record
+					end
+				end
+				
+				records[name]
+			end
+		end
 		
 		def try_server(request, server)
 			case server[0]

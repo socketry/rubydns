@@ -39,7 +39,7 @@ module RubyDNS::InjectedSupervisorSpec
 			Celluloid.boot
 			
 			# Start the RubyDNS server
-			RubyDNS::run_server(listen: SERVER_PORTS, supervisor_class: TestServer, asynchronous: true) do
+			RubyDNS::run_server(listen: SERVER_PORTS, server_class: TestServer, asynchronous: true) do
 				match("test_message", IN::TXT) do |transaction|
 					transaction.respond!(*test_message.chunked)
 				end

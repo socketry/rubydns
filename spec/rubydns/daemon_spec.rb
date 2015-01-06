@@ -75,12 +75,14 @@ describe "RubyDNS Daemonized Server" do
 	it "should resolve local domain correctly" do
 		expect(BasicTestServer.status).to be == :running
 		
-		resolver = RubyDNS::Resolver.new(BasicTestServer::SERVER_PORTS)
+		resolver = RubyDNS::Resolver.new(BasicTestServer::SERVER_PORTS, search_domain: '')
 	
 		response = resolver.query("test.local")
+		puts "Response: #{response.inspect}"
+		
 		answer = response.answer.first
 		
-		expect(answer[0].to_s).to be == "test.local"
+		expect(answer[0].to_s).to be == "test.local."
 		expect(answer[2].address.to_s).to be == "192.168.1.1"
 	end
 	
@@ -92,7 +94,7 @@ describe "RubyDNS Daemonized Server" do
 		response = resolver.query("foobar")
 		answer = response.answer.first
 		
-		expect(answer[0].to_s).to be == "foobar"
+		expect(answer[0]).to be == resolver.fully_qualified_name("foobar")
 		expect(answer[2].address.to_s).to be == "192.168.1.2"
 	end
 	

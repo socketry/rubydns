@@ -29,9 +29,9 @@ require_relative 'rubydns/logger'
 module RubyDNS
 	# Run a server with the given rules.
 	def self.run_server (options = {}, &block)
-		supervisor_class = options[:supervisor_class] || RuleBasedServer
+		server_class = options[:server_class] || RuleBasedServer
 		
-		supervisor = supervisor_class.supervise(options, &block)
+		supervisor = server_class.supervise(options, &block)
 		
 		supervisor.actors.first.run
 		if options[:asynchronous]

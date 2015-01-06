@@ -30,7 +30,7 @@ module RubyDNS::TransactionSpec
 	describe RubyDNS::Transaction do
 		let(:server) { RubyDNS::Server.new }
 		let(:query) { RubyDNS::Message.new(0) }
-		let(:question) { Resolv::DNS::Name.create("www.google.com") }
+		let(:question) { Resolv::DNS::Name.create("www.google.com.") }
 		let(:response) { RubyDNS::Message.new(0) }
 		let(:resolver) { RubyDNS::Resolver.new([[:udp, '8.8.8.8', 53], [:tcp, '8.8.8.8', 53]])}
 		
@@ -39,7 +39,7 @@ module RubyDNS::TransactionSpec
 			
 			transaction.respond!("1.2.3.4")
 			
-			expect(transaction.response.answer[0][0].to_s).to be == question.to_s
+			expect(transaction.response.answer[0][0]).to be == question
 			expect(transaction.response.answer[0][2].address.to_s).to be == "1.2.3.4"
 		end
 		

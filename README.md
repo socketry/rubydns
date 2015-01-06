@@ -17,15 +17,15 @@ For examples and documentation please see the main [project page][2].
 
 Add this line to your application's Gemfile:
 
-    gem 'rubydns'
+	gem 'rubydns'
 
 And then execute:
 
-    $ bundle
+	$ bundle
 
 Or install it yourself as:
 
-    $ gem install rubydns
+	$ gem install rubydns
 
 ## Usage
 
@@ -75,9 +75,13 @@ It is possible to create and integrate your own custom servers.
 		end
 	end
 	
-	EventMachine.run do
-		MyServer.new.run
-	end
+	# Use the RubyDNS infrastructure for running the daemon:
+	# If asynchronous is true, it will return immediately, otherwise, it will block the current thread until Ctrl-C is pressed (SIGINT).
+	RubyDNS::run_server(asynchronous: false, server_class: MyServer)
+	
+	# Directly instantiate the celluloid supervisor:
+	supervisor = MyServer.supervise
+	supervisor.actors.first.run
 
 This is the best way to integrate with other projects.
 
@@ -180,7 +184,7 @@ Here is a basic example of how to use the new resolver in full. It is important 
 	resolver = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
 
 	EventMachine::run do
-	  resolver.query('google.com', IN::A) do |response|
+		resolver.query('google.com', IN::A) do |response|
 			case response
 			when RubyDNS::Message
 				puts "Got response: #{response.answers.first}"

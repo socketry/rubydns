@@ -45,5 +45,41 @@ class Resolv
 				@rd = @rd || other.rd
 			end
 		end
+		
+		class OriginError < ArgumentError
+		end
+		
+		class Name
+			def to_s
+				"#{@labels.join('.')}#{@absolute ? '.' : ''}"
+			end
+			
+			def inspect
+				"#<#{self.class}: #{self.to_s}>"
+			end
+			
+			# Return the name, typically absolute, with the specified origin as a suffix. If the origin is nil, don't change the name, but change it to absolute (as specified).
+			def with_origin(origin, absolute = true)
+				return self.class.new(@labels, absolute) if origin == nil
+				
+				origin = Label.split(origin) if String === origin
+				
+				return self.class.new(@labels + origin, absolute)
+			end
+			
+			
+			# Return the name, typically relative, without the specified origin suffix. If the origin is nil, don't change the name, but change it to absolute (as specified).
+			def without_origin(origin, absolute = false)
+				return self.class.new(@labels, absolute) if origin == nil
+				
+				origin = Label.split(origin) if String === origin
+				
+				if @labels.last(origin.length) == origin
+					return self.class.new(@labels.first(@labels.length - origin.length), absolute)
+				else
+					raise OriginError.new("#{self} does not end with #{origin.join('.')}")
+				end
+			end
+		end
 	end
 end
