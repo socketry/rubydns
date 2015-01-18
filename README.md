@@ -109,6 +109,10 @@ The `RubyDNS::Resolver` is highly concurrent and can resolve individual names as
 
 These benchmarks are included in the unit tests.
 
+### DNSSEC support
+
+DNSSEC is currently not supported and is [unlikely to be supported in the future](http://sockpuppet.org/blog/2015/01/15/against-dnssec/).
+
 ## Compatibility
 
 ### Migrating from RubyDNS 0.8.x to 0.9.x
