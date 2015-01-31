@@ -34,6 +34,15 @@ module RubyDNS
 	end
 	
 	class Resolver
+		# Wait for up to 2 seconds for a response. Override with `options[:timeout]`
+		DEFAULT_TIMEOUT = 5.0
+		
+		# 10ms wait between making requests. Override with `options[:delay]`
+		DEFAULT_DELAY = 0.01
+		
+		# Try a given request 5 times before failing. Override with `options[:retries]`.
+		DEFAULT_RETRIES = 10
+		
 		include Celluloid::IO
 		
 		# Servers are specified in the same manor as options[:listen], e.g.
@@ -89,8 +98,8 @@ module RubyDNS
 			name = fully_qualified_name(name)
 			
 			cache = options.fetch(:cache, {})
-			retries = options.fetch(:retries, 10)
-			delay = options.fetch(:delay, 0.01)
+			retries = options.fetch(:retries, DEFAULT_RETRIES)
+			delay = options.fetch(:delay, DEFAULT_DELAY)
 			
 			records = lookup(name, resource_class, cache) do |name, resource_class|
 				response = nil
@@ -128,7 +137,7 @@ module RubyDNS
 		end
 		
 		def request_timeout
-			@options[:timeout] || 1
+			@options[:timeout] || DEFAULT_TIMEOUT
 		end
 		
 		# Send the message to available servers. If no servers respond correctly, nil is returned. This result indicates a failure of the resolver to correctly contact any server and get a valid response.
