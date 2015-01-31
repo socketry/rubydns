@@ -23,7 +23,7 @@
 require 'rubydns'
 require 'rubydns/system'
 
-module RubyDNS::SocketSpec
+module RubyDNS::IPv6Spec
 	IN = Resolv::DNS::Resource::IN
 	
 	describe RubyDNS::TCPSocketHandler do
