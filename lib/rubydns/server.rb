@@ -266,7 +266,7 @@ module RubyDNS
 			@otherwise = nil
 			
 			if block_given?
-				instance_eval &block
+				instance_eval(&block)
 			end
 		end
 
