@@ -12,6 +12,7 @@ For examples and documentation please see the main [project page][2].
 
 [![Build Status](https://travis-ci.org/ioquatix/rubydns.svg?branch=master)](https://travis-ci.org/ioquatix/rubydns)
 [![Code Climate](https://codeclimate.com/github/ioquatix/rubydns.png)](https://codeclimate.com/github/ioquatix/rubydns)
+[![Coverage Status](https://coveralls.io/repos/ioquatix/rubydns/badge.svg?branch=master)](https://coveralls.io/r/ioquatix/rubydns?branch=master)
 
 ## Installation
 
