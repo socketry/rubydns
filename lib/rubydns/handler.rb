@@ -82,7 +82,7 @@ module RubyDNS
 		end
 		
 		def respond(input_data, remote_host, remote_port)
-			options = {peer: remote_host}
+      options = {peer: remote_host, port: remote_port, proto: :udp}
 			
 			response = process_query(input_data, options)
 			
@@ -154,7 +154,7 @@ module RubyDNS
 		
 		def handle_connection(socket)
 			_, remote_port, remote_host = socket.peeraddr
-			options = {peer: remote_host}
+      options = {peer: remote_host, port: remote_port, proto: :tcp}
 			
 			input_data = StreamTransport.read_chunk(socket)
 			
