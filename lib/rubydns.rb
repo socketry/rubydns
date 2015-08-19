@@ -18,15 +18,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require_relative 'rubydns/version'
+require 'celluloid-dns'
 
-require_relative 'rubydns/message'
-require_relative 'rubydns/server'
-require_relative 'rubydns/resolver'
-require_relative 'rubydns/handler'
-require_relative 'rubydns/logger'
+require_relative 'rubydns/version'
+require_relative 'rubydns/rule_based_server'
 
 module RubyDNS
+	# Backwards compatibility:
+	Resolver = Celluloid::DNS::Resolver
+	
 	# Run a server with the given rules.
 	def self.run_server (options = {}, &block)
 		server_class = options[:server_class] || RuleBasedServer
