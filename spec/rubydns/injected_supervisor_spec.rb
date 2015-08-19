@@ -21,7 +21,7 @@
 # THE SOFTWARE.
 
 require 'rubydns'
-require 'rubydns/extensions/string'
+require 'celluloid/dns/extensions/string'
 
 module RubyDNS::InjectedSupervisorSpec
 	class TestServer < RubyDNS::RuleBasedServer
