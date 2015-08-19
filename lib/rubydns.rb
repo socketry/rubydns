@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'celluloid-dns'
+require 'celluloid/dns'
 
 require_relative 'rubydns/version'
 require_relative 'rubydns/rule_based_server'
@@ -31,11 +31,12 @@ module RubyDNS
 	def self.run_server (options = {}, &block)
 		server_class = options[:server_class] || RuleBasedServer
 		
-		supervisor = server_class.supervise(options, &block)
+		actor = server_class.new(options, &block)
 		
-		supervisor.actors.first.run
+		actor.run
+		
 		if options[:asynchronous]
-			return supervisor
+			return actor
 		else
 			read, write = IO.pipe
 			
@@ -44,7 +45,8 @@ module RubyDNS
 			}
 			
 			IO.select([read])
-			supervisor.terminate
+			
+			actor.terminate
 		end
 	end
 end
