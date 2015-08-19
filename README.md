@@ -118,6 +118,8 @@ DNSSEC is currently not supported and is [unlikely to be supported in the future
 
 ### How to respond with something other than what was requested
 
+	# Full code in examples/cname.rb
+	
 	RubyDNS::run_server do
 		# Match request for IN A resource records...
 		match(//, IN::A) do |transaction|
