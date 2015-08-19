@@ -114,6 +114,18 @@ These benchmarks are included in the unit tests.
 
 DNSSEC is currently not supported and is [unlikely to be supported in the future](http://sockpuppet.org/blog/2015/01/15/against-dnssec/).
 
+## Examples
+
+### How to respond with something other than what was requested
+
+	RubyDNS::run_server do
+		# Match request for IN A resource records...
+		match(//, IN::A) do |transaction|
+			# And return an IN CNAME record:
+			transaction.respond!(Name.create('foo.bar'), resource_class: IN::CNAME)
+		end
+	end
+
 ## Compatibility
 
 ### Migrating from RubyDNS 0.8.x to 0.9.x
