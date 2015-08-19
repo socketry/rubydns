@@ -8,4 +8,3 @@ end
 task :default => :spec
 
 require 'celluloid'
-Celluloid.logger.level = Logger::ERROR
