@@ -36,7 +36,7 @@ class BasicTestServer < Process::Daemon
 		Celluloid.boot
 		
 		# Start the RubyDNS server
-		RubyDNS::run_server(:listen => SERVER_PORTS) do
+		RubyDNS::run_server(listen: SERVER_PORTS) do
 			match("test.local", IN::A) do |transaction|
 				transaction.respond!("192.168.1.1")
 			end
