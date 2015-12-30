@@ -41,7 +41,7 @@ module RubyDNS::ResolverSpec
 			end
 	
 			def run
-				data, (_, port, host) = @socket.recvfrom(1024)
+				data, (_, port, host) = @socket.recvfrom(1024, 0)
 		
 				@socket.send("Foobar", 0, host, port)
 			end

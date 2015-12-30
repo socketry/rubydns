@@ -222,7 +222,7 @@ module RubyDNS
 			
 			socket.send(request.packet, 0, host, port)
 			
-			data, (_, remote_port) = socket.recvfrom(UDP_TRUNCATION_SIZE)
+			data, (_, remote_port) = socket.recvfrom(UDP_TRUNCATION_SIZE, 0)
 			# Need to check host, otherwise security issue.
 			
 			# May indicate some kind of spoofing attack:
