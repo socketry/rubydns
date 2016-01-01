@@ -112,7 +112,7 @@ module RubyDNS
 		def handle_connection
 			# @logger.debug "Waiting for incoming UDP packet #{@socket.inspect}..."
 			
-			input_data, (_, remote_port, remote_host) = @socket.recvfrom(UDP_TRUNCATION_SIZE)
+			input_data, (_, remote_port, remote_host) = @socket.recvfrom(UDP_TRUNCATION_SIZE, 0)
 			
 			async.respond(input_data, remote_host, remote_port)
 		rescue IOError => error
