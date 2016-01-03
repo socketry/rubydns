@@ -251,6 +251,15 @@ becomes
 * Support reverse records more easily.
 * Some kind of system level integration, e.g. registering a DNS server with the currently running system resolver.
 
+## Donations
+
+If you find this project useful, please donate to support it's continued development.
+
+<p style="text-align: center">
+	<img src="https://blockchain.info/qr?data=1BU3RnjB7fS9XmiTHgbmLKL36S5kccovs8&size=200"/><br/>
+	<a href="bitcoin:1BU3RnjB7fS9XmiTHgbmLKL36S5kccovs8?amount=0.1&label=Donations">1BU3RnjB7fS9XmiTHgbmLKL36S5kccovs8</a>
+</p>
+
 ## License
 
 Released under the MIT license.
