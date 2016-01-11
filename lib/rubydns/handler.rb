@@ -107,6 +107,8 @@ module RubyDNS
 			@logger.warn "<> UDP session ended prematurely: #{error.inspect}!"
 		rescue DecodeError
 			@logger.warn "<> Could not decode incoming UDP data!"
+		rescue Exception => error
+		        @logger.error error.inspect
 		end
 		
 		def handle_connection
