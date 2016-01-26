@@ -18,7 +18,9 @@ For examples and documentation please see the main [project page][2].
 
 Add this line to your application's Gemfile:
 
-	gem 'rubydns'
+```ruby
+gem 'rubydns'
+```
 
 And then execute:
 
@@ -32,30 +34,32 @@ Or install it yourself as:
 
 This is copied from `test/examples/test-dns-2.rb`. It has been simplified slightly.
 
-	#!/usr/bin/env ruby
-	require 'rubydns'
+```ruby
+#!/usr/bin/env ruby
+require 'rubydns'
 
-	INTERFACES = [
-		[:udp, "0.0.0.0", 5300],
-		[:tcp, "0.0.0.0", 5300]
-	]
-	Name = Resolv::DNS::Name
-	IN = Resolv::DNS::Resource::IN
+INTERFACES = [
+	[:udp, "0.0.0.0", 5300],
+	[:tcp, "0.0.0.0", 5300]
+]
+Name = Resolv::DNS::Name
+IN = Resolv::DNS::Resource::IN
 
-	# Use upstream DNS for name resolution.
-	UPSTREAM = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
+# Use upstream DNS for name resolution.
+UPSTREAM = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
 
-	# Start the RubyDNS server
-	RubyDNS::run_server(:listen => INTERFACES) do
-		match(/test\.mydomain\.org/, IN::A) do |transaction|
-			transaction.respond!("10.0.0.80")
-		end
-
-		# Default DNS handler
-		otherwise do |transaction|
-			transaction.passthrough!(UPSTREAM)
-		end
+# Start the RubyDNS server
+RubyDNS::run_server(:listen => INTERFACES) do
+	match(/test\.mydomain\.org/, IN::A) do |transaction|
+		transaction.respond!("10.0.0.80")
 	end
+
+	# Default DNS handler
+	otherwise do |transaction|
+		transaction.passthrough!(UPSTREAM)
+	end
+end
+```
 
 Start the server using `./test.rb`. You can then test it using dig:
 
@@ -70,19 +74,21 @@ On some platforms (e.g. Mac OS X) the number of file descriptors is relatively l
 
 It is possible to create and integrate your own custom servers.
 
-	class MyServer < RubyDNS::Server
-		def process(name, resource_class, transaction)
-			transaction.fail!(:NXDomain)
-		end
+```ruby
+class MyServer < RubyDNS::Server
+	def process(name, resource_class, transaction)
+		transaction.fail!(:NXDomain)
 	end
-	
-	# Use the RubyDNS infrastructure for running the daemon:
-	# If asynchronous is true, it will return immediately, otherwise, it will block the current thread until Ctrl-C is pressed (SIGINT).
-	RubyDNS::run_server(asynchronous: false, server_class: MyServer)
-	
-	# Directly instantiate the celluloid supervisor:
-	supervisor = MyServer.supervise
-	supervisor.actors.first.run
+end
+
+# Use the RubyDNS infrastructure for running the daemon:
+# If asynchronous is true, it will return immediately, otherwise, it will block the current thread until Ctrl-C is pressed (SIGINT).
+RubyDNS::run_server(asynchronous: false, server_class: MyServer)
+
+# Directly instantiate the celluloid supervisor:
+supervisor = MyServer.supervise
+supervisor.actors.first.run
+```
 
 This is the best way to integrate with other projects.
 
@@ -118,15 +124,17 @@ DNSSEC is currently not supported and is [unlikely to be supported in the future
 
 ### How to respond with something other than what was requested
 
-	# Full code in examples/cname.rb
-	
-	RubyDNS::run_server do
-		# Match request for IN A resource records...
-		match(//, IN::A) do |transaction|
-			# And return an IN CNAME record:
-			transaction.respond!(Name.create('foo.bar'), resource_class: IN::CNAME)
-		end
+```ruby
+# Full code in examples/cname.rb
+
+RubyDNS::run_server do
+	# Match request for IN A resource records...
+	match(//, IN::A) do |transaction|
+		# And return an IN CNAME record:
+		transaction.respond!(Name.create('foo.bar'), resource_class: IN::CNAME)
 	end
+end
+```
 
 ## Compatibility
 
@@ -146,7 +154,9 @@ The primary change is the removal of the dependency on `RExec` which was used fo
 
 The transaction options are now conveniently available:
 
-	transaction.options[key] == transaction[key]
+```ruby
+transaction.options[key] == transaction[key]
+```
 
 The remote peer address used to be available directly via `transaction[:peer]` but profiling revealed that the `EventMachine::Connection#get_peername` was moderately expensive. Therefore, the incoming connection is now available in `transaction[:connection]` and more specifically `transaction[:peer]` is no longer available and replaced by `transaction[:connection].peername` which gives `[ip_address, port]`.
 
@@ -154,23 +164,25 @@ The remote peer address used to be available directly via `transaction[:peer]` b
 
 The asynchronous deferred processing became the default and only method for processing requests in `0.7.0`. This simplifies the API but there were a few changes, notably the removal of `defer!` and the addition of `defer`. The reason for this was due to issues relating to deferred processing and the flow of control, which were confusing and introduced bugs in specific situations. Now, you can assume flow control through the entire block even with non-blocking functions.
 
-	RubyDNS::run_server(:listen => SERVER_PORTS) do
-		match(/\.*.com/, IN::A) do |transaction|
-			# Won't block and won't continue until fiber.resume is called.
-			defer do |fiber|
-				# No domain exists, after 5 seconds:
-				EventMachine::Timer.new(5) do
-					transaction.fail!(:NXDomain)
-					
-					fiber.resume
-				end
+```ruby
+RubyDNS::run_server(:listen => SERVER_PORTS) do
+	match(/\.*.com/, IN::A) do |transaction|
+		# Won't block and won't continue until fiber.resume is called.
+		defer do |fiber|
+			# No domain exists, after 5 seconds:
+			EventMachine::Timer.new(5) do
+				transaction.fail!(:NXDomain)
+
+				fiber.resume
 			end
 		end
-
-		otherwise do
-			transaction.fail!(:NXDomain)
-		end
 	end
+
+	otherwise do
+		transaction.fail!(:NXDomain)
+	end
+end
+```
 
 You can see a complete example in `test/test_slow_server.rb`.
 
@@ -200,29 +212,33 @@ The system standard resolver was synchronous, and this could stall the server wh
 
 Here is a basic example of how to use the new resolver in full. It is important to provide both `:udp` and `:tcp` connection specifications, so that large requests will be handled correctly:
 
-	resolver = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
+```ruby
+resolver = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
 
-	EventMachine::run do
-		resolver.query('google.com', IN::A) do |response|
-			case response
-			when RubyDNS::Message
-				puts "Got response: #{response.answers.first}"
-			else
-				# Response is of class RubyDNS::ResolutionFailure
-				puts "Failed: #{response.message}"
-			end
-
-			EventMachine::stop
+EventMachine::run do
+	resolver.query('google.com', IN::A) do |response|
+		case response
+		when RubyDNS::Message
+			puts "Got response: #{response.answers.first}"
+		else
+			# Response is of class RubyDNS::ResolutionFailure
+			puts "Failed: #{response.message}"
 		end
+
+		EventMachine::stop
 	end
+end
+```
 
 Existing code that uses `Resolv::DNS` as a resolver will need to be updated:
 
-	# 1/ Add this at the top of your file; Host specific system information:
-	require 'rubydns/system'
-	
-	# 2/ Change from R = Resolv::DNS.new to:
-	R = RubyDNS::Resolver.new(RubyDNS::System::nameservers)
+```ruby
+# 1/ Add this at the top of your file; Host specific system information:
+require 'rubydns/system'
+
+# 2/ Change from R = Resolv::DNS.new to:
+R = RubyDNS::Resolver.new(RubyDNS::System::nameservers)
+```
 
 Everything else in the server can remain the same. You can see a complete example in `test/test_resolver.rb`.
 
@@ -230,12 +246,16 @@ Everything else in the server can remain the same. You can see a complete exampl
 
 Due to changes in `resolv.rb`, superficial parts of RubyDNS have changed. Rather than using `:A` to specify A-records, one must now use the class name.
 
-	match(..., :A)
+```ruby
+match(..., :A)
+```
 
 becomes
 
-	IN = Resolv::DNS::Resource::IN
-	match(..., IN::A)
+```ruby
+IN = Resolv::DNS::Resource::IN
+match(..., IN::A)
+```
 
 ## Contributing
 
