@@ -3,6 +3,8 @@
 
 RubyDNS is a high-performance DNS server which can be easily integrated into other projects or used as a stand-alone daemon. By default it uses rule-based pattern matching. Results can be hard-coded, computed, fetched from a remote DNS server or fetched from a local cache, depending on requirements.
 
+[![RubyDNS Introduction](http://img.youtube.com/vi/B9ygq0xh3HQ/maxresdefault.jpg)](https://www.youtube.com/watch?v=B9ygq0xh3HQ&feature=youtu.be&hd=1 "RubyDNS Introduction")
+
 In addition, RubyDNS includes a high-performance asynchronous DNS resolver built on top of [Celluloid][1]. This module can be used by itself in client applications without using the full RubyDNS server stack.
 
 For examples and documentation please see the main [project page][2].
@@ -10,9 +12,9 @@ For examples and documentation please see the main [project page][2].
 [1]: https://celluloid.io
 [2]: http://www.codeotaku.com/projects/rubydns/
 
-[![Build Status](https://travis-ci.org/ioquatix/rubydns.svg?branch=master)](https://travis-ci.org/ioquatix/rubydns)
-[![Code Climate](https://codeclimate.com/github/ioquatix/rubydns.png)](https://codeclimate.com/github/ioquatix/rubydns)
-[![Coverage Status](https://coveralls.io/repos/ioquatix/rubydns/badge.svg?branch=master)](https://coveralls.io/r/ioquatix/rubydns?branch=master)
+[![Build Status](https://travis-ci.org/ioquatix/rubydns.svg)](https://travis-ci.org/ioquatix/rubydns)
+[![Code Climate](https://codeclimate.com/github/ioquatix/rubydns.svg)](https://codeclimate.com/github/ioquatix/rubydns)
+[![Coverage Status](https://coveralls.io/repos/ioquatix/rubydns/badge.svg)](https://coveralls.io/r/ioquatix/rubydns)
 
 ## Installation
 
