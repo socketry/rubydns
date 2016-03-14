@@ -36,7 +36,7 @@ class BasicTestServer < Process::Daemon
 		Celluloid.boot
 		
 		# Start the RubyDNS server
-		RubyDNS::run_server(listen: SERVER_PORTS) do
+		@actor = RubyDNS::run_server(listen: SERVER_PORTS, asynchronous: true) do
 			match("test.local", IN::A) do |transaction|
 				transaction.respond!("192.168.1.1")
 			end
@@ -54,6 +54,10 @@ class BasicTestServer < Process::Daemon
 				transaction.fail!(:NXDomain)
 			end
 		end
+	end
+	
+	def shutdown
+		@actor.terminate
 	end
 end
 
