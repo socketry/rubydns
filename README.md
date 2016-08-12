@@ -41,7 +41,7 @@ This is copied from `test/examples/test-dns-2.rb`. It has been simplified slight
 		[:udp, "0.0.0.0", 5300],
 		[:tcp, "0.0.0.0", 5300]
 	]
-	Name = Resolv::DNS::Name
+
 	IN = Resolv::DNS::Resource::IN
 
 	# Use upstream DNS for name resolution.
