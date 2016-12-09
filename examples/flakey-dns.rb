@@ -49,8 +49,8 @@ class FlakeyDNS < Process::Daemon
 					logger.info 'Dropping domain MICROSOFT...'
 					transaction.fail!(:NXDomain)
 				else
-					# Pass the request to the otherwise handler
-					false
+					logger.info 'Passing DNS request upstream...'
+					transaction.passthrough!(fallback_resolver_supervisor.actors.first)
 				end
 			end
 
