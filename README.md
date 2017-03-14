@@ -34,30 +34,32 @@ Or install it yourself as:
 
 This is copied from `test/examples/test-dns-2.rb`. It has been simplified slightly.
 
-	#!/usr/bin/env ruby
-	require 'rubydns'
+```ruby
+#!/usr/bin/env ruby
+require 'rubydns'
 
-	INTERFACES = [
-		[:udp, "0.0.0.0", 5300],
-		[:tcp, "0.0.0.0", 5300]
-	]
+INTERFACES = [
+	[:udp, "0.0.0.0", 5300],
+	[:tcp, "0.0.0.0", 5300]
+]
 
-	IN = Resolv::DNS::Resource::IN
+IN = Resolv::DNS::Resource::IN
 
-	# Use upstream DNS for name resolution.
-	UPSTREAM = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
+# Use upstream DNS for name resolution.
+UPSTREAM = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
 
-	# Start the RubyDNS server
-	RubyDNS::run_server(:listen => INTERFACES) do
-		match(/test\.mydomain\.org/, IN::A) do |transaction|
-			transaction.respond!("10.0.0.80")
-		end
-
-		# Default DNS handler
-		otherwise do |transaction|
-			transaction.passthrough!(UPSTREAM)
-		end
+# Start the RubyDNS server
+RubyDNS::run_server(:listen => INTERFACES) do
+	match(/test\.mydomain\.org/, IN::A) do |transaction|
+		transaction.respond!("10.0.0.80")
 	end
+
+	# Default DNS handler
+	otherwise do |transaction|
+		transaction.passthrough!(UPSTREAM)
+	end
+end
+```
 
 Start the server using `./test.rb`. You can then test it using dig:
 
@@ -72,19 +74,21 @@ On some platforms (e.g. Mac OS X) the number of file descriptors is relatively l
 
 It is possible to create and integrate your own custom servers.
 
-	class MyServer < RubyDNS::Server
-		def process(name, resource_class, transaction)
-			transaction.fail!(:NXDomain)
-		end
+```ruby
+class MyServer < RubyDNS::Server
+	def process(name, resource_class, transaction)
+		transaction.fail!(:NXDomain)
 	end
-	
-	# Use the RubyDNS infrastructure for running the daemon:
-	# If asynchronous is true, it will return immediately, otherwise, it will block the current thread until Ctrl-C is pressed (SIGINT).
-	RubyDNS::run_server(asynchronous: false, server_class: MyServer)
-	
-	# Directly instantiate the celluloid supervisor:
-	supervisor = MyServer.supervise
-	supervisor.actors.first.run
+end
+
+# Use the RubyDNS infrastructure for running the daemon:
+# If asynchronous is true, it will return immediately, otherwise, it will block the current thread until Ctrl-C is pressed (SIGINT).
+RubyDNS::run_server(asynchronous: false, server_class: MyServer)
+
+# Directly instantiate the celluloid supervisor:
+supervisor = MyServer.supervise
+supervisor.actors.first.run
+```
 
 This is the best way to integrate with other projects.
 
@@ -120,15 +124,17 @@ DNSSEC is currently not supported and is [unlikely to be supported in the future
 
 ### How to respond with something other than what was requested
 
-	# Full code in examples/cname.rb
-	
-	RubyDNS::run_server do
-		# Match request for IN A resource records...
-		match(//, IN::A) do |transaction|
-			# And return an IN CNAME record:
-			transaction.respond!(Name.create('foo.bar'), resource_class: IN::CNAME)
-		end
+```ruby
+# Full code in examples/cname.rb
+
+RubyDNS::run_server do
+	# Match request for IN A resource records...
+	match(//, IN::A) do |transaction|
+		# And return an IN CNAME record:
+		transaction.respond!(Name.create('foo.bar'), resource_class: IN::CNAME)
 	end
+end
+```
 
 ## Contributing
 
