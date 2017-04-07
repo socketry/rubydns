@@ -18,11 +18,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'celluloid/dns/server'
+require 'async/dns/server'
 
 module RubyDNS
 	# Provides the core of the RubyDNS domain-specific language (DSL). It contains a list of rules which are used to match against incoming DNS questions. These rules are used to generate responses which are either DNS resource records or failures.
-	class RuleBasedServer < Celluloid::DNS::Server
+	class RuleBasedServer < Async::DNS::Server
 		# Represents a single rule in the server.
 		class Rule
 			def initialize(pattern, callback)
@@ -91,9 +91,6 @@ module RubyDNS
 				@pattern.inspect
 			end
 		end
-		
-		# Don't wrap the block going into initialize.
-		execute_block_on_receiver :initialize
 		
 		# Instantiate a server with a block
 		#

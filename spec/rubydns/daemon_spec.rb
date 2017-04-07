@@ -32,44 +32,44 @@ class BasicTestServer < Process::Daemon
 		File.expand_path("../tmp", __FILE__)
 	end
 
+	def reactor
+		Async::Reactor.new
+	end
+
 	def startup
-		Celluloid.boot
-		
-		# Start the RubyDNS server
-		@actor = RubyDNS::run_server(listen: SERVER_PORTS, asynchronous: true) do
-			match("test.local", IN::A) do |transaction|
-				transaction.respond!("192.168.1.1")
-			end
+		reactor.run do
+			RubyDNS::run_server(listen: SERVER_PORTS, asynchronous: true) do
+				match("test.local", IN::A) do |transaction|
+					transaction.respond!("192.168.1.1")
+				end
 
-			match(/foo.*/, IN::A) do |transaction|
-				transaction.respond!("192.168.1.2")
-			end
+				match(/foo.*/, IN::A) do |transaction|
+					transaction.respond!("192.168.1.2")
+				end
 
-			match(/peername/, IN::A) do |transaction|
-				transaction.respond!(transaction[:peer])
-			end
+				match(/peername/, IN::A) do |transaction|
+					transaction.respond!(transaction[:peer])
+				end
 
-			# Default DNS handler
-			otherwise do |transaction|
-				transaction.fail!(:NXDomain)
+				# Default DNS handler
+				otherwise do |transaction|
+					transaction.fail!(:NXDomain)
+				end
 			end
 		end
 	end
 	
 	def shutdown
-		@actor.terminate
+		@reactor.stop
 	end
 end
 
 describe "RubyDNS Daemonized Server" do
+	include_context "reactor"
+	
 	before(:all) do
-		Celluloid.shutdown
-		
-		# Trying to fork with Celluloid running is a recipe for disaster.
 		# BasicTestServer.controller output: $stderr
 		BasicTestServer.start
-		
-		Celluloid.boot
 	end
 	
 	after(:all) do
@@ -79,7 +79,7 @@ describe "RubyDNS Daemonized Server" do
 	it "should resolve local domain correctly" do
 		expect(BasicTestServer.status).to be == :running
 		
-		resolver = RubyDNS::Resolver.new(BasicTestServer::SERVER_PORTS, search_domain: '')
+		resolver = RubyDNS::Resolver.new(BasicTestServer::SERVER_PORTS)
 	
 		response = resolver.query("test.local")
 		

@@ -28,12 +28,10 @@ module RubyDNS::PassthroughSpec
 	IN = Resolv::DNS::Resource::IN
 	
 	describe "RubyDNS Passthrough Server" do
-		before(:all) do
-			Celluloid.shutdown
-			Celluloid.boot
+		include_context "reactor"
 		
-			# Start the RubyDNS server
-			@server = RubyDNS::run_server(:listen => SERVER_PORTS, asynchronous: true) do
+		let(:server) do
+			RubyDNS::run_server(:listen => SERVER_PORTS, asynchronous: true) do
 				resolver = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
 			
 				match(/.*\.com/, IN::A) do |transaction|
@@ -50,8 +48,10 @@ module RubyDNS::PassthroughSpec
 				end
 			end
 		end
-	
+		
 		it "should resolve domain correctly" do
+			server
+			
 			resolver = RubyDNS::Resolver.new(SERVER_PORTS)
 		
 			response = resolver.query("google.com")
@@ -63,9 +63,13 @@ module RubyDNS::PassthroughSpec
 		
 			addresses = answer.select {|record| record.kind_of? Resolv::DNS::Resource::IN::A}
 			expect(addresses.size).to be > 0
+			
+			server.stop!
 		end
 	
 		it "should resolve prefixed domain correctly" do
+			server
+			
 			resolver = RubyDNS::Resolver.new(SERVER_PORTS)
 		
 			response = resolver.query("a-slashdot.org")
@@ -73,6 +77,8 @@ module RubyDNS::PassthroughSpec
 		
 			expect(answer).not_to be == nil
 			expect(answer.count).to be > 0
+			
+			server.stop!
 		end
 	end
 end

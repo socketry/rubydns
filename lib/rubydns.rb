@@ -18,35 +18,28 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'celluloid/dns'
+require 'async/dns'
 
 require_relative 'rubydns/version'
 require_relative 'rubydns/rule_based_server'
 
 module RubyDNS
 	# Backwards compatibility:
-	Resolver = Celluloid::DNS::Resolver
+	Resolver = Async::DNS::Resolver
 	
 	# Run a server with the given rules.
-	def self.run_server (options = {}, &block)
-		server_class = options[:server_class] || RuleBasedServer
-		
-		actor = server_class.new(options, &block)
-		
-		actor.run
-		
-		if options[:asynchronous]
-			return actor
+	def self.run_server (server_class: RuleBasedServer, asynchronous: false, **options, &block)
+		# Should fix this... allow nested reactors.
+		if asynchronous
+			Async::Task.current.reactor.async do
+				server = server_class.new(**options, &block)
+				server.run
+			end
 		else
-			read, write = IO.pipe
-			
-			trap(:INT) {
-				write.puts
-			}
-			
-			IO.select([read])
-			
-			actor.terminate
+			Async::Reactor.run do
+				server = server_class.new(**options, &block)
+				server.run
+			end
 		end
 	end
 end
