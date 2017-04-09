@@ -28,6 +28,8 @@ RSpec.shared_context "reactor" do
 		reactor.run do
 			example.run
 		end
+		
+		reactor.close
 	end
 end
 
