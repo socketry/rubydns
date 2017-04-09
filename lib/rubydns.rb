@@ -28,18 +28,9 @@ module RubyDNS
 	Resolver = Async::DNS::Resolver
 	
 	# Run a server with the given rules.
-	def self.run_server (server_class: RuleBasedServer, asynchronous: false, **options, &block)
-		# Should fix this... allow nested reactors.
-		if asynchronous
-			Async::Task.current.reactor.async do
-				server = server_class.new(**options, &block)
-				server.run
-			end
-		else
-			Async::Reactor.run do
-				server = server_class.new(**options, &block)
-				server.run
-			end
-		end
+	def self.run_server (server_class: RuleBasedServer, **options, &block)
+		server = server_class.new(**options, &block)
+		
+		server.run
 	end
 end

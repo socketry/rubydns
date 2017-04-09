@@ -38,7 +38,7 @@ class BasicTestServer < Process::Daemon
 
 	def startup
 		reactor.run do
-			RubyDNS::run_server(listen: SERVER_PORTS, asynchronous: true) do
+			RubyDNS::run_server(listen: SERVER_PORTS) do
 				match("test.local", IN::A) do |transaction|
 					transaction.respond!("192.168.1.1")
 				end

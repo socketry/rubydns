@@ -30,8 +30,8 @@ module RubyDNS::PassthroughSpec
 	describe "RubyDNS Passthrough Server" do
 		include_context "reactor"
 		
-		let(:server) do
-			RubyDNS::run_server(:listen => SERVER_PORTS, asynchronous: true) do
+		def run_server
+			task = RubyDNS::run_server(:listen => SERVER_PORTS) do
 				resolver = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
 			
 				match(/.*\.com/, IN::A) do |transaction|
@@ -47,38 +47,39 @@ module RubyDNS::PassthroughSpec
 					transaction.fail!(:NXDomain)
 				end
 			end
+			
+			yield
+			
+		ensure
+			task.stop
 		end
 		
 		it "should resolve domain correctly" do
-			server
+			run_server do
+				resolver = RubyDNS::Resolver.new(SERVER_PORTS, timeout: 1)
+				
+				response = resolver.query("google.com")
+				expect(response.ra).to be == 1
 			
-			resolver = RubyDNS::Resolver.new(SERVER_PORTS)
-		
-			response = resolver.query("google.com")
-			expect(response.ra).to be == 1
-		
-			answer = response.answer.first
-			expect(answer).not_to be == nil
-			expect(answer.count).to be > 0
-		
-			addresses = answer.select {|record| record.kind_of? Resolv::DNS::Resource::IN::A}
-			expect(addresses.size).to be > 0
+				answer = response.answer.first
+				expect(answer).not_to be == nil
+				expect(answer.count).to be > 0
 			
-			server.stop!
+				addresses = answer.select {|record| record.kind_of? Resolv::DNS::Resource::IN::A}
+				expect(addresses.size).to be > 0
+			end
 		end
 	
 		it "should resolve prefixed domain correctly" do
-			server
+			run_server do
+				resolver = RubyDNS::Resolver.new(SERVER_PORTS)
 			
-			resolver = RubyDNS::Resolver.new(SERVER_PORTS)
-		
-			response = resolver.query("a-slashdot.org")
-			answer = response.answer.first
-		
-			expect(answer).not_to be == nil
-			expect(answer.count).to be > 0
+				response = resolver.query("a-slashdot.org")
+				answer = response.answer.first
 			
-			server.stop!
+				expect(answer).not_to be == nil
+				expect(answer.count).to be > 0
+			end
 		end
 	end
 end

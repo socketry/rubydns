@@ -38,7 +38,7 @@ module RubyDNS::InjectedSupervisorSpec
 		
 		let(:server) do
 			# Start the RubyDNS server
-			RubyDNS::run_server(listen: SERVER_PORTS, server_class: TestServer, asynchronous: true) do
+			RubyDNS::run_server(listen: SERVER_PORTS, server_class: TestServer) do
 				match("test_message", IN::TXT) do |transaction|
 					transaction.respond!(*test_message.chunked)
 				end
@@ -51,14 +51,14 @@ module RubyDNS::InjectedSupervisorSpec
 		end
 		
 		it "should use the injected class" do
-			server
+			task = server
 			
 			resolver = RubyDNS::Resolver.new(SERVER_PORTS)
 			response = resolver.query("test_message", IN::TXT)
 			text = response.answer.first
 			expect(text[2].strings.join).to be == 'Testing...'
 			
-			server.stop!
+			task.stop
 		end
 	end
 end
