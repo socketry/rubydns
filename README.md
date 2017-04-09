@@ -1,23 +1,14 @@
 # RubyDNS
 
-**RubyDNS 2.0 which was developed and based on Celluloid is [currently being reworked](https://github.com/socketry/socketry-dns)**
-
 [![Gitter](https://badges.gitter.im/Join+Chat.svg)](https://gitter.im/ioquatix/rubydns?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 RubyDNS is a high-performance DNS server which can be easily integrated into other projects or used as a stand-alone daemon. By default it uses rule-based pattern matching. Results can be hard-coded, computed, fetched from a remote DNS server or fetched from a local cache, depending on requirements.
 
-[![RubyDNS Introduction](http://img.youtube.com/vi/B9ygq0xh3HQ/maxresdefault.jpg)](https://www.youtube.com/watch?v=B9ygq0xh3HQ&feature=youtu.be&hd=1 "RubyDNS Introduction")
-
-In addition, RubyDNS includes a high-performance asynchronous DNS resolver built on top of [Celluloid][1]. This module can be used by itself in client applications without using the full RubyDNS server stack.
-
-For examples and documentation please see the main [project page][2].
-
-[1]: https://celluloid.io
-[2]: http://www.codeotaku.com/projects/rubydns/
-
 [![Build Status](https://travis-ci.org/ioquatix/rubydns.svg)](https://travis-ci.org/ioquatix/rubydns)
 [![Code Climate](https://codeclimate.com/github/ioquatix/rubydns.svg)](https://codeclimate.com/github/ioquatix/rubydns)
 [![Coverage Status](https://coveralls.io/repos/ioquatix/rubydns/badge.svg)](https://coveralls.io/r/ioquatix/rubydns)
+
+[![RubyDNS Introduction](http://img.youtube.com/vi/B9ygq0xh3HQ/maxresdefault.jpg)](https://www.youtube.com/watch?v=B9ygq0xh3HQ&feature=youtu.be&hd=1 "RubyDNS Introduction")
 
 ## Installation
 
@@ -35,7 +26,11 @@ Or install it yourself as:
 
 ## Usage
 
-This is copied from `test/examples/test-dns-2.rb`. It has been simplified slightly.
+There are [lots of examples available](examples/README.md) in the `examples/` directory.
+
+### Basic DNS Server
+
+Here is the code from `examples/basic-dns.rb`:
 
 ```ruby
 #!/usr/bin/env ruby
@@ -43,7 +38,7 @@ require 'rubydns'
 
 INTERFACES = [
 	[:udp, "0.0.0.0", 5300],
-	[:tcp, "0.0.0.0", 5300]
+	[:tcp, "0.0.0.0", 5300],
 ]
 
 IN = Resolv::DNS::Resource::IN
@@ -53,7 +48,7 @@ UPSTREAM = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
 
 # Start the RubyDNS server
 RubyDNS::run_server(:listen => INTERFACES) do
-	match(/test\.mydomain\.org/, IN::A) do |transaction|
+	match(%r{test.local}, IN::A) do |transaction|
 		transaction.respond!("10.0.0.80")
 	end
 
@@ -64,9 +59,9 @@ RubyDNS::run_server(:listen => INTERFACES) do
 end
 ```
 
-Start the server using `./test.rb`. You can then test it using dig:
+Start the server using `RUBYOPT=-w ./examples/basic-dns.rb`. You can then test it using dig:
 
-	$ dig @localhost -p 5300 test.mydomain.org
+	$ dig @localhost -p 5300 test.local
 	$ dig @localhost -p 5300 google.com
 
 ### File Handle Limitations
@@ -84,18 +79,21 @@ class MyServer < RubyDNS::Server
 	end
 end
 
-# Use the RubyDNS infrastructure for running the daemon:
-# If asynchronous is true, it will return immediately, otherwise, it will block the current thread until Ctrl-C is pressed (SIGINT).
-RubyDNS::run_server(asynchronous: false, server_class: MyServer)
-
-# Directly instantiate the celluloid supervisor:
-supervisor = MyServer.supervise
-supervisor.actors.first.run
+Async::Reactor.run do
+	task = MyServer.run
+	
+	# ... do other things
+	
+	# Shut down the server:
+	task.stop
+end
 ```
 
 This is the best way to integrate with other projects.
 
 ## Performance
+
+**Due to changes in the underlying code, there have been some very minor performance regressions. The numbers below will be updated in due course.**
 
 We welcome additional benchmarks and feedback regarding RubyDNS performance. To check the current performance results, consult the [travis build job output](https://travis-ci.org/ioquatix/rubydns).
 
@@ -122,22 +120,6 @@ These benchmarks are included in the unit tests.
 ### DNSSEC support
 
 DNSSEC is currently not supported and is [unlikely to be supported in the future](http://sockpuppet.org/blog/2015/01/15/against-dnssec/).
-
-## Examples
-
-### How to respond with something other than what was requested
-
-```ruby
-# Full code in examples/cname.rb
-
-RubyDNS::run_server do
-	# Match request for IN A resource records...
-	match(//, IN::A) do |transaction|
-		# And return an IN CNAME record:
-		transaction.respond!(Name.create('foo.bar'), resource_class: IN::CNAME)
-	end
-end
-```
 
 ## Contributing
 

@@ -22,7 +22,6 @@
 # THE SOFTWARE.
 
 require 'rubydns'
-require 'rubydns/extensions/string'
 
 require 'process/daemon'
 require 'process/daemon/privileges'
@@ -33,6 +32,8 @@ require 'json'
 
 require 'digest/md5'
 
+require 'http'
+
 # You might need to change the user name "daemon". This can be a user name
 # or a user id.
 RUN_AS = 'daemon'
@@ -40,19 +41,6 @@ RUN_AS = 'daemon'
 if Process::Daemon::Privileges.current_user != 'root'
 	$stderr.puts 'Sorry, this command needs to be run as root!'
 	exit 1
-end
-
-require 'http'
-
-# Celluloid::IO fetcher to retrieve URLs.
-class HttpFetcher
-	include Celluloid::IO
-
-	def get(url)
-		# Note: For SSL support specify:
-		# 	ssl_socket_class: Celluloid::IO::SSLSocket
-		HTTP.get(url, socket_class: Celluloid::IO::TCPSocket)
-	end
 end
 
 # Encapsulates the logic for fetching information from Wikipedia.
@@ -81,9 +69,6 @@ class WikipediaDNS < Process::Daemon
 
 		stats = { requested: 0 }
 
-		# Use a Celluloid supervisor so the system recovers if the actor dies
-		fetcher = HttpFetcher.supervise
-
 		# Start the RubyDNS server
 		RubyDNS.run_server do
 			on(:start) do
@@ -103,7 +88,8 @@ class WikipediaDNS < Process::Daemon
 				title = match_data[1]
 				stats[:requested] += 1
 
-				response = fetcher.actors.first.get(Wikipedia.summary_url(title))
+				url = Wikipedia.summary_url(title)
+				response = HTTP.get(url) # socket_class: ... is not yet supported.
 
 				summary =
 					Wikipedia.extract_summary(response).force_encoding('ASCII-8BIT')
