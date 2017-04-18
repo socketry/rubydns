@@ -70,10 +70,10 @@ On some platforms (e.g. Mac OS X) the number of file descriptors is relatively l
 
 ### Custom servers
 
-It is possible to create and integrate your own custom servers.
+It is possible to create and integrate your own custom servers, however this functionality has now moved to [`Async::DNS::Server`](https://github.com/socketry/async-dns).
 
 ```ruby
-class MyServer < RubyDNS::Server
+class MyServer < Async::DNS::Server
 	def process(name, resource_class, transaction)
 		transaction.fail!(:NXDomain)
 	end
