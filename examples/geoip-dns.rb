@@ -58,14 +58,14 @@ class GeoIPDNS < Process::Daemon
 
 	def startup
 		RubyDNS.run_server(listen: INTERFACES) do
-			fallback_resolver_supervisor =
-			  RubyDNS::Resolver.supervise(RubyDNS::System.nameservers)
+			fallback_resolver_supervisor = RubyDNS::Resolver.supervise(RubyDNS::System.nameservers)
+			
 			match(//, IN::A) do |transaction|
 				logger.debug 'In block'
 
 				# The IP Address of the peer is stored in the transaction options
-				# with the key :peer
-				ip_address = transaction.options[:peer]
+				# with the key :remote_address
+				ip_address = transaction.options[:remote_address].ip_address
 				logger.debug "Looking up geographic information for peer #{ip_address}"
 				location = GeoIPDNS.ip_to_location(ip_address)
 
