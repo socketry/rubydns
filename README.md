@@ -68,7 +68,7 @@ Start the server using `RUBYOPT=-w ./examples/basic-dns.rb`. You can then test i
 
 On some platforms (e.g. Mac OS X) the number of file descriptors is relatively low by default and should be increased by calling `ulimit -n 10000` before running tests or even before starting a server which expects a large number of concurrent incoming connections.
 
-### Custom servers
+### Custom Servers
 
 It is possible to create and integrate your own custom servers, however this functionality has now moved to [`Async::DNS::Server`](https://github.com/socketry/async-dns).
 
@@ -135,11 +135,19 @@ DNSSEC is currently not supported and is [unlikely to be supported in the future
 * Support reverse records more easily.
 * Some kind of system level integration, e.g. registering a DNS server with the currently running system resolver.
 
+## See Also
+
+The majority of this gem is now implemented by `async-dns`.
+
+- [async-io](https://github.com/socketry/async-io) — Asynchronous networking and sockets.
+- [async-dns](https://github.com/socketry/async-dns) — Asynchronous DNS resolver and server.
+- [async-rspec](https://github.com/socketry/async-rspec) — Shared contexts for running async specs.
+
 ## License
 
 Released under the MIT license.
 
-Copyright, 2009, 2012, 2014, by [Samuel G. D. Williams](http://www.codeotaku.com/samuel-williams).
+Copyright, 2017, by [Samuel G. D. Williams](http://www.codeotaku.com/samuel-williams).
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
