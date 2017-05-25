@@ -18,20 +18,7 @@ end
 
 require "bundler/setup"
 require "async"
-require "async/tcp_socket"
-require "async/udp_socket"
-
-RSpec.shared_context "reactor" do
-	let(:reactor) {Async::Reactor.new}
-	
-	around(:each) do |example|
-		reactor.run do
-			example.run
-		end
-		
-		reactor.close
-	end
-end
+require "async/rspec"
 
 RSpec.configure do |config|
 	# Enable flags like --only-failures and --next-failure

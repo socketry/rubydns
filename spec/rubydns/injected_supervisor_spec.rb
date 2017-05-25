@@ -34,7 +34,7 @@ module RubyDNS::InjectedSupervisorSpec
 	IN = Resolv::DNS::Resource::IN
 	
 	describe "RubyDNS::run_server(server_class: ...)" do
-		include_context "reactor"
+		include_context Async::RSpec::Reactor
 		
 		let(:server) do
 			# Start the RubyDNS server

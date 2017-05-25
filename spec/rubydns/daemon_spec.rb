@@ -48,7 +48,7 @@ class BasicTestServer < Process::Daemon
 				end
 
 				match(/peername/, IN::A) do |transaction|
-					transaction.respond!(transaction[:peer])
+					transaction.respond!(transaction[:remote_address].ip_address)
 				end
 
 				# Default DNS handler
@@ -65,7 +65,7 @@ class BasicTestServer < Process::Daemon
 end
 
 describe "RubyDNS Daemonized Server" do
-	include_context "reactor"
+	include_context Async::RSpec::Reactor
 	
 	before(:all) do
 		# BasicTestServer.controller output: $stderr

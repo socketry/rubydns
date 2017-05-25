@@ -28,7 +28,7 @@ module RubyDNS::PassthroughSpec
 	IN = Resolv::DNS::Resource::IN
 	
 	describe "RubyDNS Passthrough Server" do
-		include_context "reactor"
+		include_context Async::RSpec::Reactor
 		
 		def run_server
 			task = RubyDNS::run_server(:listen => SERVER_PORTS) do
