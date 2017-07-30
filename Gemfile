@@ -1,11 +1,10 @@
 source 'https://rubygems.org'
 
-ruby RUBY_VERSION
-
 gemspec
 
 group :development do
 	gem "process-daemon"
+	gem "nio4r", "~> 1.0"
 end
 
 group :test do
