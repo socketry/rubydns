@@ -100,8 +100,8 @@ module RubyDNS
 		#		end
 		#	end
 		#
-		def initialize(options = {}, &block)
-			super(options)
+		def initialize(*args, &block)
+			super(*args)
 			
 			@events = {}
 			@rules = []

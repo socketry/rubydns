@@ -38,7 +38,7 @@ module RubyDNS::InjectedSupervisorSpec
 		
 		let(:server) do
 			# Start the RubyDNS server
-			RubyDNS::run_server(listen: SERVER_PORTS, server_class: TestServer) do
+			RubyDNS::run_server(SERVER_PORTS, server_class: TestServer) do
 				match("test_message", IN::TXT) do |transaction|
 					transaction.respond!(*test_message.chunked)
 				end

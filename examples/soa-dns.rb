@@ -27,7 +27,7 @@ $R = Resolv::DNS.new
 Name = Resolv::DNS::Name
 IN = Resolv::DNS::Resource::IN
 
-RubyDNS.run_server(listen: [[:udp, '0.0.0.0', 5400]]) do
+RubyDNS.run_server([[:udp, '0.0.0.0', 5400]]) do
 	# SOA Record
 	#   dig @localhost -p 5400 SOA mydomain.org
 	match('mydomain.org', IN::SOA) do |transaction|

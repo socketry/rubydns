@@ -13,7 +13,7 @@ IN = Resolv::DNS::Resource::IN
 UPSTREAM = RubyDNS::Resolver.new([[:udp, '8.8.8.8', 53], [:tcp, '8.8.8.8', 53]])
 
 # Start the RubyDNS server
-RubyDNS.run_server(listen: INTERFACES) do
+RubyDNS.run_server(INTERFACES) do
 	match(/test.mydomain.org/, IN::A) do |transaction|
 			transaction.respond!('10.0.0.80')
 	end

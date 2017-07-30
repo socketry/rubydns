@@ -38,7 +38,7 @@ class FlakeyDNS < Process::Daemon
 	IN = Resolv::DNS::Resource::IN
 
 	def startup
-		RubyDNS.run_server(listen: INTERFACES) do
+		RubyDNS.run_server(INTERFACES) do
 			# Use a Celluloid supervisor so the system recovers if the actor dies
 			fallback_resolver_supervisor =
 			  RubyDNS::Resolver.supervise(RubyDNS::System.nameservers)

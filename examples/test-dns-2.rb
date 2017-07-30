@@ -61,7 +61,7 @@ class Server < Process::Daemon
 		$stderr.sync = true
 
 		# Start the RubyDNS server
-		RubyDNS.run_server(listen: INTERFACES) do
+		RubyDNS.run_server(INTERFACES) do
 			on(:start) do
 				RExec.change_user(RUN_AS)
 			end

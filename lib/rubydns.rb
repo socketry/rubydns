@@ -28,8 +28,13 @@ module RubyDNS
 	Resolver = Async::DNS::Resolver
 	
 	# Run a server with the given rules.
-	def self.run_server (server_class: RuleBasedServer, **options, &block)
-		server = server_class.new(**options, &block)
+	def self.run_server (*args, server_class: RuleBasedServer, **options, &block)
+		if listen = options.delete(:listen)
+			warn "Using `listen:` option is deprecated, please pass as the first argument."
+			args.unshift(listen)
+		end
+		
+		server = server_class.new(*args, **options, &block)
 		
 		server.run
 	end

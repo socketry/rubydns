@@ -57,7 +57,7 @@ class GeoIPDNS < Process::Daemon
 	IN = Resolv::DNS::Resource::IN
 
 	def startup
-		RubyDNS.run_server(listen: INTERFACES) do
+		RubyDNS.run_server(INTERFACES) do
 			fallback_resolver_supervisor = RubyDNS::Resolver.supervise(RubyDNS::System.nameservers)
 			
 			match(//, IN::A) do |transaction|

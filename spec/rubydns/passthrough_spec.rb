@@ -31,7 +31,7 @@ module RubyDNS::PassthroughSpec
 		include_context Async::RSpec::Reactor
 		
 		def run_server
-			task = RubyDNS::run_server(:listen => SERVER_PORTS) do
+			task = RubyDNS::run_server(listen: SERVER_PORTS) do
 				resolver = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
 			
 				match(/.*\.com/, IN::A) do |transaction|

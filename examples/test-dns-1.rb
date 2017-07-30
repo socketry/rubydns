@@ -37,7 +37,7 @@ INTERFACES = [
 	# [:tcp, '::0', 5300],
 ]
 
-RubyDNS.run_server(listen: INTERFACES) do
+RubyDNS.run_server(INTERFACES) do
 	# % dig +nocmd +noall +answer @localhost ANY dev.mydomain.org
 	# dev.mydomain.org.	16000	IN	A	10.0.0.80
 	# dev.mydomain.org.	16000	IN	MX	10 mail.mydomain.org.
