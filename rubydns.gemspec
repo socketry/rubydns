@@ -28,8 +28,6 @@ Gem::Specification.new do |spec|
 	spec.require_paths = ["lib"]
 	spec.has_rdoc = "yard"
 	
-	spec.required_ruby_version = '>= 2.2.6'
-
 	spec.add_dependency("async-dns", "~> 1.0")
 	spec.add_development_dependency("async-rspec", "~> 1.0")
 	
