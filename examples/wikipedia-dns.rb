@@ -23,30 +23,24 @@
 
 require 'rubydns'
 
-require 'process/daemon'
-require 'process/daemon/privileges'
-
 require 'cgi'
 require 'nokogiri'
 require 'json'
 
 require 'digest/md5'
 
-require 'http'
-
-# You might need to change the user name "daemon". This can be a user name
-# or a user id.
-RUN_AS = 'daemon'
-
-if Process::Daemon::Privileges.current_user != 'root'
-	$stderr.puts 'Sorry, this command needs to be run as root!'
-	exit 1
-end
+require 'async/logger'
+require 'async/http/client'
+require 'async/dns/extensions/string'
 
 # Encapsulates the logic for fetching information from Wikipedia.
 module Wikipedia
+	def self.server_host
+		"http://www.wikipedia.org"
+	end
+	
 	def self.summary_url(title)
-		"http://en.wikipedia.org/w/api.php?action=parse&page=#{CGI.escape title}&prop=text&section=0&format=json"
+		"/?action=parse&page=#{CGI.escape title}&prop=text&section=0&format=json"
 	end
 
 	def self.extract_summary(json_text)
@@ -59,7 +53,7 @@ end
 
 # A DNS server that queries Wikipedia and returns summaries for
 # specifically crafted queries.
-class WikipediaDNS < Process::Daemon
+class WikipediaDNS
 	Name = Resolv::DNS::Name
 	IN = Resolv::DNS::Resource::IN
 
@@ -70,14 +64,17 @@ class WikipediaDNS < Process::Daemon
 		stats = { requested: 0 }
 
 		# Start the RubyDNS server
-		RubyDNS.run_server do
+		RubyDNS.run_server([[:udp, '0.0.0.0', 5300], [:tcp, '0.0.0.0', 5300]]) do
 			on(:start) do
-				Process::Daemon::Privileges.change_user(RUN_AS)
+				# Process::Daemon::Privileges.change_user(RUN_AS)
+				
 				if ARGV.include?('--debug')
 					@logger.level = Logger::DEBUG
 				else
 					@logger.level = Logger::WARN
 				end
+				
+				@logger.info "Starting Wikipedia DNS..."
 			end
 
 			match(/stats\.wikipedia/, IN::TXT) do |transaction|
@@ -88,11 +85,16 @@ class WikipediaDNS < Process::Daemon
 				title = match_data[1]
 				stats[:requested] += 1
 
+				wikipedia_endpoint = Async::IO::Endpoint.tcp('198.35.26.96', 80)
+				client = Async::HTTP::Client.new(wikipedia_endpoint)
 				url = Wikipedia.summary_url(title)
-				response = HTTP.get(url) # socket_class: ... is not yet supported.
-
+				
+				@logger.info "Making request to #{wikipedia_endpoint} for #{url}."
+				response = client.get(url, {'Host' => 'www.wikipedia.org'})
+				@logger.info "Got response #{response.inspect}."
+				
 				summary =
-					Wikipedia.extract_summary(response).force_encoding('ASCII-8BIT')
+					Wikipedia.extract_summary(response.body).force_encoding('ASCII-8BIT')
 				transaction.respond!(*summary.chunked)
 			end
 
@@ -104,4 +106,5 @@ class WikipediaDNS < Process::Daemon
 	end
 end
 
-WikipediaDNS.daemonize
+wikipedia_dns = WikipediaDNS.new
+wikipedia_dns.startup
