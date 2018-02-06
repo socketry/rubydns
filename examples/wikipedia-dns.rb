@@ -32,20 +32,31 @@ require 'digest/md5'
 require 'async/logger'
 require 'async/http/client'
 require 'async/dns/extensions/string'
+require 'async/http/url_endpoint'
 
 # Encapsulates the logic for fetching information from Wikipedia.
 module Wikipedia
-	def self.server_host
-		"http://www.wikipedia.org"
+	ENDPOINT = Async::HTTP::URLEndpoint.parse("https://en.wikipedia.org")
+	
+	def self.lookup(title, logger: nil)
+		client = Async::HTTP::Client.new([ENDPOINT])
+		url = self.summary_url(title)
+		
+		logger&.info "Making request to #{ENDPOINT} for #{url}."
+		response = client.get(url, {'Host' => ENDPOINT.hostname})
+		logger&.info "Got response #{response.inspect}."
+		
+		return self.extract_summary(response.body).force_encoding('ASCII-8BIT')
 	end
 	
 	def self.summary_url(title)
-		"/?action=parse&page=#{CGI.escape title}&prop=text&section=0&format=json"
+		"/api/rest_v1/page/summary/#{CGI.escape title}"
 	end
 
 	def self.extract_summary(json_text)
 		document = JSON.parse(json_text)
-		return Nokogiri::HTML(document['parse']['text']['*']).css('p')[0].text
+		
+		return document['extract']
 	rescue
 		return 'Invalid Article.'
 	end
@@ -84,17 +95,9 @@ class WikipediaDNS
 			match(/(.+)\.wikipedia/, IN::TXT) do |transaction, match_data|
 				title = match_data[1]
 				stats[:requested] += 1
-
-				wikipedia_endpoint = Async::IO::Endpoint.tcp('198.35.26.96', 80)
-				client = Async::HTTP::Client.new(wikipedia_endpoint)
-				url = Wikipedia.summary_url(title)
 				
-				@logger.info "Making request to #{wikipedia_endpoint} for #{url}."
-				response = client.get(url, {'Host' => 'www.wikipedia.org'})
-				@logger.info "Got response #{response.inspect}."
+				summary = Wikipedia.lookup(title, logger: @logger)
 				
-				summary =
-					Wikipedia.extract_summary(response.body).force_encoding('ASCII-8BIT')
 				transaction.respond!(*summary.chunked)
 			end
 
