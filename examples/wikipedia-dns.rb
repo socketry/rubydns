@@ -24,7 +24,6 @@
 require 'rubydns'
 
 require 'cgi'
-require 'nokogiri'
 require 'json'
 
 require 'digest/md5'
@@ -46,7 +45,11 @@ module Wikipedia
 		response = client.get(url, {'Host' => ENDPOINT.hostname})
 		logger&.info "Got response #{response.inspect}."
 		
-		return self.extract_summary(response.body).force_encoding('ASCII-8BIT')
+		if response.status == 301
+			return lookup(response.headers['HTTP_LOCATION'])
+		else
+			return self.extract_summary(response.body).force_encoding('ASCII-8BIT')
+		end
 	end
 	
 	def self.summary_url(title)
@@ -67,6 +70,11 @@ end
 class WikipediaDNS
 	Name = Resolv::DNS::Name
 	IN = Resolv::DNS::Resource::IN
+	
+	INTERFACES = [
+		[:udp, '::', 5300],
+		[:tcp, '::', 5300],
+	]
 
 	def startup
 		# Don't buffer output (for debug purposes)
@@ -75,7 +83,7 @@ class WikipediaDNS
 		stats = { requested: 0 }
 
 		# Start the RubyDNS server
-		RubyDNS.run_server([[:udp, '0.0.0.0', 5300], [:tcp, '0.0.0.0', 5300]]) do
+		RubyDNS.run_server(INTERFACES) do
 			on(:start) do
 				# Process::Daemon::Privileges.change_user(RUN_AS)
 				
