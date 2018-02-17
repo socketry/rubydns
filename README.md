@@ -78,14 +78,8 @@ class MyServer < Async::DNS::Server
 	end
 end
 
-Async::Reactor.run do
-	task = MyServer.run
-	
-	# ... do other things
-	
-	# Shut down the server:
-	task.stop
-end
+task = MyServer.new
+task.run
 ```
 
 This is the best way to integrate with other projects.
