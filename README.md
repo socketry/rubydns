@@ -81,10 +81,10 @@ end
 Async::Reactor.run do
 	task = MyServer.new.run
 	
-	# ... do other things
+	# ... do other things, e.g. run specs/tests
 	
-	# Shut down the server:
-	task.stop
+	# Shut down the server manually if required, otherwise it will run indefinitely.
+	# task.stop
 end
 ```
 
