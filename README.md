@@ -79,7 +79,7 @@ class MyServer < Async::DNS::Server
 end
 
 Async::Reactor.run do
-	task = MyServer.run
+	task = MyServer.new.run
 	
 	# ... do other things
 	
