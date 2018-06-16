@@ -1,7 +1,5 @@
-# -*- encoding: utf-8 -*-
-lib = File.expand_path('../lib', __FILE__)
-$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'rubydns/version'
+
+require_relative 'lib/rubydns/version'
 
 Gem::Specification.new do |spec|
 	spec.name          = "rubydns"
@@ -9,17 +7,10 @@ Gem::Specification.new do |spec|
 	spec.authors       = ["Samuel Williams"]
 	spec.email         = ["samuel.williams@oriontransfer.co.nz"]
 	spec.description   = <<-EOF
-		RubyDNS is a high-performance DNS server which can be easily integrated into
-		other projects or used as a stand-alone daemon. By default it uses
-		rule-based pattern matching. Results can be hard-coded, computed, fetched from
-		a remote DNS server or fetched from a local cache, depending on requirements.
-
-		In addition, RubyDNS includes a high-performance asynchronous DNS resolver
-		built on top of Celluloid. This module can be used by itself in client
-		applications without using the full RubyDNS server stack.
+		RubyDNS provides a rule-based DSL for implementing DNS servers, built on top of `Async::DNS`.
 	EOF
 	spec.summary       = "An easy to use DNS server and resolver for Ruby."
-	spec.homepage      = "http://www.codeotaku.com/projects/rubydns"
+	spec.homepage      = "https://github.com/socketry/rubydns"
 	spec.license       = "MIT"
 
 	spec.files         = `git ls-files`.split($/)
