@@ -4,7 +4,7 @@ gemspec
 
 group :development do
 	gem "process-daemon"
-	gem "nio4r", "~> 1.0"
+	gem "nio4r"
 end
 
 group :test do

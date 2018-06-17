@@ -1,13 +1,26 @@
 language: ruby
-sudo: false
-rvm:
-  - 2.0
-  - 2.1
-  - 2.2
-  - 2.3
-  - 2.4
-  - ruby-head
+cache: bundler
+
+before_script:
+  - gem update --system
+  - gem install bundler
+
 addons:
   apt:
     packages:
     - bind9
+
+matrix:
+  include:
+    - rvm: 2.3
+    - rvm: 2.4
+    - rvm: 2.5
+    - rvm: 2.6
+    - rvm: jruby-head
+      env: JRUBY_OPTS="--debug -X+O"
+    - rvm: ruby-head
+    - rvm: rbx-3
+  allow_failures:
+    - rvm: ruby-head
+    - rvm: jruby-head
+    - rvm: rbx-3
