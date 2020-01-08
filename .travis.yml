@@ -12,6 +12,7 @@ matrix:
     - rvm: 2.4
     - rvm: 2.5
     - rvm: 2.6
+    - rvm: 2.7
     - rvm: jruby-head
       env: JRUBY_OPTS="--debug -X+O"
     - rvm: ruby-head
