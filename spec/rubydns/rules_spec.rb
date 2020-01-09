@@ -28,8 +28,9 @@ module RubyDNS::RulesSpec
 
 		true_callback = Proc.new { true }
 
+		let(:server) {double(:logger => Console.logger)}
+
 		it "should match string patterns correctly" do
-			server = double(:logger => Logger.new("/dev/null"))
 			transaction = double(:query => Resolv::DNS::Message.new(0))
 
 			rule = RubyDNS::RuleBasedServer::Rule.new(["foobar", IN::A], true_callback)
@@ -40,7 +41,6 @@ module RubyDNS::RulesSpec
 		end
 
 		it "should match regular expression patterns correctly" do
-			server = double(:logger => Logger.new("/dev/null"))
 			transaction = double(:query => Resolv::DNS::Message.new(0))
 
 			rule = RubyDNS::RuleBasedServer::Rule.new([/foo/, IN::A], true_callback)
@@ -51,7 +51,6 @@ module RubyDNS::RulesSpec
 		end
 
 		it "should match callback patterns correctly" do
-			server = double(:logger => Logger.new("/dev/null"))
 			transaction = double(:query => Resolv::DNS::Message.new(0))
 
 			calls = 0
