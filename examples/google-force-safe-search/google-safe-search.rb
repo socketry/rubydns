@@ -20,13 +20,13 @@ IN = Resolv::DNS::Resource::IN
 RubyDNS::run_server(INTERFACES) do
 	@logger.debug!
   
-  #match google.com
-  match(/^google.com$/, IN::A) do |transaction|
-    transaction.respond!(Name.create('forcesafesearch.google.com'), resource_class: IN::CNAME)
-  end
-  match(/^www.google.com$/, IN::A) do |transaction|
-    transaction.respond!(Name.create('forcesafesearch.google.com'), resource_class: IN::CNAME)
-  end
+  	#match google.com
+  	match(/^google.com$/, IN::A) do |transaction|
+    		transaction.respond!(Name.create('forcesafesearch.google.com'), resource_class: IN::CNAME)
+  	end
+  	match(/^www.google.com$/, IN::A) do |transaction|
+    		transaction.respond!(Name.create('forcesafesearch.google.com'), resource_class: IN::CNAME)
+  	end
 
 	otherwise do |transaction|
 		transaction.passthrough!(UPSTREAM)
