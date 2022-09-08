@@ -28,28 +28,30 @@ require 'json'
 
 require 'digest/md5'
 
-require 'async/logger'
 require 'async/http/client'
 require 'async/dns/extensions/string'
-require 'async/http/url_endpoint'
+require 'async/http/endpoint'
 
 # Encapsulates the logic for fetching information from Wikipedia.
 module Wikipedia
-	ENDPOINT = Async::HTTP::URLEndpoint.parse("https://en.wikipedia.org")
+	ENDPOINT = Async::HTTP::Endpoint.parse("https://en.wikipedia.org")
 	
 	def self.lookup(title, logger: nil)
-		client = Async::HTTP::Client.new([ENDPOINT])
+		client = Async::HTTP::Client.new(ENDPOINT)
 		url = self.summary_url(title)
 		
-		logger&.info "Making request to #{ENDPOINT} for #{url}."
-		response = client.get(url, {'Host' => ENDPOINT.hostname})
-		logger&.info "Got response #{response.inspect}."
+		logger&.debug "Making request to #{ENDPOINT} for #{url}."
+		response = client.get(url, headers: {"user-agent" => "RubyDNS"})
+		logger&.debug "Got response #{response.inspect}."
 		
 		if response.status == 301
-			return lookup(response.headers['HTTP_LOCATION'])
+			return lookup(response.headers['location'], logger: logger)
 		else
-			return self.extract_summary(response.body).force_encoding('ASCII-8BIT')
+			return self.extract_summary(response.body.read).force_encoding('ASCII-8BIT')
 		end
+	ensure
+		response&.close
+		client&.close
 	end
 	
 	def self.summary_url(title)
@@ -86,12 +88,6 @@ class WikipediaDNS
 		RubyDNS.run_server(INTERFACES) do
 			on(:start) do
 				# Process::Daemon::Privileges.change_user(RUN_AS)
-				
-				if ARGV.include?('--debug')
-					@logger.level = Logger::DEBUG
-				else
-					@logger.level = Logger::WARN
-				end
 				
 				@logger.info "Starting Wikipedia DNS..."
 			end
