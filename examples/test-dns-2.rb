@@ -1,4 +1,8 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Released under the MIT License.
+# Copyright, 2017, by Samuel Williams.
 
 # Copyright, 2009, 2012, by Samuel G. D. Williams. <http://www.codeotaku.com>
 #
@@ -20,8 +24,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'rubydns'
-require 'process-daemon'
+require "rubydns"
+require "process-daemon"
 
 # To run this command, use the standard daemon syntax as root
 # ./daemon2.rb start
@@ -35,17 +39,17 @@ require 'process-daemon'
 # dig +tcp @localhost test.mydomain.org
 
 # You might need to change the user name "daemon". This can be a user name or a user id.
-RUN_AS = 'daemon'
+RUN_AS = "daemon"
 
 INTERFACES = [
-	[:udp, '0.0.0.0', 53],
-	[:tcp, '0.0.0.0', 53]
+	[:udp, "0.0.0.0", 53],
+	[:tcp, "0.0.0.0", 53]
 ]
 
 # We need to be root in order to bind to privileged port
-if RExec.current_user != 'root'
-	 $stderr.puts 'Sorry, this command needs to be run as root!'
-	 exit 1
+if RExec.current_user != "root"
+	$stderr.puts "Sorry, this command needs to be run as root!"
+	exit 1
 end
 
 # The Daemon itself
@@ -54,7 +58,7 @@ class Server < Process::Daemon
 	IN = Resolv::DNS::Resource::IN
 
 	# Use upstream DNS for name resolution.
-	UPSTREAM = RubyDNS::Resolver.new([[:udp, '8.8.8.8', 53], [:tcp, '8.8.8.8', 53]])
+	UPSTREAM = RubyDNS::Resolver.new([[:udp, "8.8.8.8", 53], [:tcp, "8.8.8.8", 53]])
 
 	def startup
 		# Don't buffer output (for debug purposes)
@@ -66,8 +70,8 @@ class Server < Process::Daemon
 				RExec.change_user(RUN_AS)
 			end
 
-			match('test.mydomain.org', IN::A) do |transaction|
-				transaction.respond!('10.0.0.80')
+			match("test.mydomain.org", IN::A) do |transaction|
+				transaction.respond!("10.0.0.80")
 			end
 
 			# Default DNS handler

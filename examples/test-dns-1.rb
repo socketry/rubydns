@@ -1,4 +1,8 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Released under the MIT License.
+# Copyright, 2017, by Samuel Williams.
 
 # Copyright, 2009, 2012, by Samuel G. D. Williams. <http://www.codeotaku.com>
 #
@@ -20,9 +24,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'rubygems'
-require 'rubydns'
-require 'rubydns/system'
+require "rubygems"
+require "rubydns"
+require "rubydns/system"
 
 # You can specify other DNS servers easily
 # $R = Resolv::DNS.new(:nameserver => ["xx.xx.1.1", "xx.xx.2.2"])
@@ -31,8 +35,8 @@ R = RubyDNS::Resolver.new(RubyDNS::System.nameservers)
 Name = Resolv::DNS::Name
 IN = Resolv::DNS::Resource::IN
 INTERFACES = [
-	[:udp, '0.0.0.0', 5300],
-	[:tcp, '0.0.0.0', 5300],
+	[:udp, "0.0.0.0", 5300],
+	[:tcp, "0.0.0.0", 5300],
 	# [:udp, '::0', 5300],
 	# [:tcp, '::0', 5300],
 ]
@@ -51,16 +55,16 @@ RubyDNS.run_server(INTERFACES) do
 	end
 
 	# For this exact address record, return an IP address
-	match('dev.mydomain.org', IN::A) do |transaction|
-		transaction.respond!('10.0.0.80')
+	match("dev.mydomain.org", IN::A) do |transaction|
+		transaction.respond!("10.0.0.80")
 	end
 
-	match('80.0.0.10.in-addr.arpa', IN::PTR) do |transaction|
-		transaction.respond!(Name.create('dev.mydomain.org.'))
+	match("80.0.0.10.in-addr.arpa", IN::PTR) do |transaction|
+		transaction.respond!(Name.create("dev.mydomain.org."))
 	end
 
-	match('dev.mydomain.org', IN::MX) do |transaction|
-		transaction.respond!(10, Name.create('mail.mydomain.org.'))
+	match("dev.mydomain.org", IN::MX) do |transaction|
+		transaction.respond!(10, Name.create("mail.mydomain.org."))
 	end
 
 	match(/^test([0-9]+).mydomain.org$/, IN::A) do |transaction, match_data|
@@ -68,7 +72,7 @@ RubyDNS.run_server(INTERFACES) do
 
 		if offset > 0 && offset < 10
 			logger.info "Responding with address #{'10.0.0.' + (90 + offset).to_s}..."
-			transaction.respond!('10.0.0.' + (90 + offset).to_s)
+			transaction.respond!("10.0.0." + (90 + offset).to_s)
 		else
 			logger.info "Address out of range: #{offset}!"
 			false
@@ -77,7 +81,7 @@ RubyDNS.run_server(INTERFACES) do
 
 	# Default DNS handler
 	otherwise do |transaction|
-		logger.info 'Passing DNS request upstream...'
+		logger.info "Passing DNS request upstream..."
 		transaction.passthrough!(R)
-	 end
+	end
 end

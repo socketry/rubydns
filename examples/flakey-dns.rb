@@ -1,4 +1,10 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Released under the MIT License.
+# Copyright, 2014-2017, by Samuel Williams.
+# Copyright, 2014, by Peter M. Goldstein.
+# Copyright, 2016, by kaleforsale.
 
 # Copyright, 2009, 2012, by Samuel G. D. Williams. <http://www.codeotaku.com>
 #
@@ -20,13 +26,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'process/daemon'
+require "process/daemon"
 
-require 'rubydns'
-require 'rubydns/system'
+require "rubydns"
+require "rubydns/system"
 
 INTERFACES = [
-	[:udp, '0.0.0.0', 5300]
+	[:udp, "0.0.0.0", 5300]
 ]
 
 # A DNS server that selectively drops queries based on the requested domain
@@ -41,28 +47,28 @@ class FlakeyDNS < Process::Daemon
 		RubyDNS.run_server(INTERFACES) do
 			# Use a Celluloid supervisor so the system recovers if the actor dies
 			fallback_resolver_supervisor =
-			  RubyDNS::Resolver.supervise(RubyDNS::System.nameservers)
+					RubyDNS::Resolver.supervise(RubyDNS::System.nameservers)
 
 			# Fail the resolution of certain domains ;)
 			match(/(m?i?c?r?o?s?o?f?t)/) do |transaction, match_data|
 				if match_data[1].size > 7
-					logger.info 'Dropping domain MICROSOFT...'
+					logger.info "Dropping domain MICROSOFT..."
 					transaction.fail!(:NXDomain)
 				else
-					logger.info 'Passing DNS request upstream...'
+					logger.info "Passing DNS request upstream..."
 					transaction.passthrough!(fallback_resolver_supervisor.actors.first)
 				end
 			end
 
 			# Hmm....
 			match(/^(.+\.)?sco\./) do |transaction|
-				logger.info 'Dropping domain SCO...'
+				logger.info "Dropping domain SCO..."
 				transaction.fail!(:NXDomain)
 			end
 
 			# Default DNS handler
 			otherwise do |transaction|
-				logger.info 'Passing DNS request upstream...'
+				logger.info "Passing DNS request upstream..."
 				transaction.passthrough!(fallback_resolver_supervisor.actors.first)
 			end
 		end

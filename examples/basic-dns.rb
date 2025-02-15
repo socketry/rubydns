@@ -1,5 +1,10 @@
 #!/usr/bin/env ruby
-require 'rubydns'
+# frozen_string_literal: true
+
+# Released under the MIT License.
+# Copyright, 2017-2020, by Samuel Williams.
+
+require "rubydns"
 
 INTERFACES = [
 	[:udp, "127.0.0.2", 53],

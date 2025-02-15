@@ -1,28 +1,29 @@
+# frozen_string_literal: true
 
-require_relative 'lib/rubydns/version'
+require_relative "lib/rubydns/version"
 
 Gem::Specification.new do |spec|
-	spec.name          = "rubydns"
-	spec.version       = RubyDNS::VERSION
-	spec.authors       = ["Samuel Williams"]
-	spec.email         = ["samuel.williams@oriontransfer.co.nz"]
-	spec.description   = <<-EOF
-		RubyDNS provides a rule-based DSL for implementing DNS servers, built on top of `Async::DNS`.
-	EOF
-	spec.summary       = "An easy to use DNS server and resolver for Ruby."
-	spec.homepage      = "https://github.com/socketry/rubydns"
-	spec.license       = "MIT"
-
-	spec.files         = `git ls-files`.split($/)
-	spec.executables   = spec.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
-	spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
-	spec.require_paths = ["lib"]
+	spec.name = "rubydns"
+	spec.version = RubyDNS::VERSION
 	
-	spec.add_dependency("async-dns", "~> 1.0")
-	spec.add_development_dependency("async-rspec", "~> 1.0")
+	spec.summary = "An easy to use DNS server and resolver for Ruby."
+	spec.authors = ["Samuel Williams", "Peter M. Goldstein", "Erran Carey", "Keith Larrimore", "Alexey Pisarenko", "Chris Cunningham", "Genki Sugawara", "Jean-Christophe Cyr", "John Bachir", "Mark Van de Vyver", "Michal Cichra", "Olle Jonsson", "Rob Fors", "Satoshi Takada", "The Gitter Badger", "Timothy Redaelli", "Zac Sprackett", "justfalter", "kaleforsale"]
+	spec.license = "MIT"
 	
-	spec.add_development_dependency "covered"
-	spec.add_development_dependency "bundler"
-	spec.add_development_dependency "rspec", "~> 3.4"
-	spec.add_development_dependency "rake"
+	spec.cert_chain  = ["release.cert"]
+	spec.signing_key = File.expand_path("~/.gem/release.pem")
+	
+	spec.homepage = "https://github.com/socketry/rubydns"
+	
+	spec.metadata = {
+		"source_code_uri" => "https://github.com/socketry/rubydns.git",
+	}
+	
+	spec.files = Dir.glob(["{bin,examples,lib,spec}/**/*", "*.md"], File::FNM_DOTMATCH, base: __dir__)
+	
+	spec.executables = ["rubydns-check"]
+	
+	spec.required_ruby_version = ">= 3.1"
+	
+	spec.add_dependency "async-dns", "~> 1.0"
 end

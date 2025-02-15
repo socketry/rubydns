@@ -1,41 +1,25 @@
-# Copyright, 2009, 2012, by Samuel G. D. Williams. <http://www.codeotaku.com>
-# 
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-# 
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-# 
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE.
+# frozen_string_literal: true
 
-require 'async/dns'
+# Released under the MIT License.
+# Copyright, 2009-2017, by Samuel Williams.
+# Copyright, 2014, by Peter M. Goldstein.
 
-require_relative 'rubydns/version'
-require_relative 'rubydns/rule_based_server'
+require "async/dns"
+
+require_relative "rubydns/version"
+require_relative "rubydns/server"
 
 module RubyDNS
 	# Backwards compatibility:
 	Resolver = Async::DNS::Resolver
 	
 	# Run a server with the given rules.
-	def self.run_server (*args, server_class: RuleBasedServer, **options, &block)
-		if listen = options.delete(:listen)
-			warn "Using `listen:` option is deprecated, please pass as the first argument."
-			args.unshift(listen)
-		end
-		
-		server = server_class.new(*args, **options, &block)
-		
-		server.run
+	def self.run (*arguments, server_class: Server, **options, &block)
+		server_class.new(*arguments, **options, &block).run
+	end
+	
+	# @deprecated Use {RubyDNS.run} instead.
+	def self.run_server(...)
+		self.run(...)
 	end
 end

@@ -1,36 +1,24 @@
 #!/usr/bin/env ruby
 # encoding: utf-8
 
-# Copyright, 2009, 2012, by Samuel G. D. Williams. <http://www.codeotaku.com>
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE.
+# Released under the MIT License.
+# Copyright, 2014-2022, by Samuel Williams.
+# Copyright, 2014, by Peter M. Goldstein.
 
-require 'rubydns'
+# Released under the MIT License.
+# Copyright, 2014-2022, by Samuel Williams.
+# Copyright, 2014, by Peter M. Goldstein.
 
-require 'cgi'
-require 'json'
+require "rubydns"
 
-require 'digest/md5'
+require "cgi"
+require "json"
 
-require 'async/http/client'
-require 'async/dns/extensions/string'
-require 'async/http/endpoint'
+require "digest/md5"
+
+require "async/http/client"
+require "async/dns/extensions/string"
+require "async/http/endpoint"
 
 # Encapsulates the logic for fetching information from Wikipedia.
 module Wikipedia
@@ -45,9 +33,9 @@ module Wikipedia
 		logger&.debug "Got response #{response.inspect}."
 		
 		if response.status == 301
-			return lookup(response.headers['location'], logger: logger)
+			return lookup(response.headers["location"], logger: logger)
 		else
-			return self.extract_summary(response.body.read).force_encoding('ASCII-8BIT')
+			return self.extract_summary(response.body.read).force_encoding("ASCII-8BIT")
 		end
 	ensure
 		response&.close
@@ -61,9 +49,9 @@ module Wikipedia
 	def self.extract_summary(json_text)
 		document = JSON.parse(json_text)
 		
-		return document['extract']
+		return document["extract"]
 	rescue
-		return 'Invalid Article.'
+		return "Invalid Article."
 	end
 end
 
@@ -74,8 +62,8 @@ class WikipediaDNS
 	IN = Resolv::DNS::Resource::IN
 	
 	INTERFACES = [
-		[:udp, '::', 5300],
-		[:tcp, '::', 5300],
+		[:udp, "::", 5300],
+		[:tcp, "::", 5300],
 	]
 
 	def startup

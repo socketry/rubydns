@@ -1,13 +1,8 @@
-*.gem
-*.rbc
-/.config
-/coverage/
-/InstalledFiles
+/.bundle/
 /pkg/
-/spec/reports/
-/test/tmp/
-/test/version_tmp/
-tmp
+/gems.locked
+/.covered.db
+/external
 
 /.yardoc/
 /_yardoc/
@@ -17,7 +12,7 @@ tmp
 /.bundle/
 /lib/bundler/man/
 
-Gemfile.lock
+/gems.locked
 .ruby-version
 .ruby-gemset
 

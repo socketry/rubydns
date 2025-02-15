@@ -1,4 +1,9 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Released under the MIT License.
+# Copyright, 2014-2017, by Samuel Williams.
+# Copyright, 2014, by Peter M. Goldstein.
 
 # Copyright, 2009, 2012, by Samuel G. D. Williams. <http://www.codeotaku.com>
 #
@@ -20,15 +25,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'geoip'
+require "geoip"
 
-require 'process/daemon'
+require "process/daemon"
 
-require 'rubydns'
-require 'rubydns/system'
+require "rubydns"
+require "rubydns/system"
 
 INTERFACES = [
-	[:udp, '0.0.0.0', 5300]
+	[:udp, "0.0.0.0", 5300]
 ]
 
 # Path to the GeoIP file downloaded from
@@ -36,7 +41,7 @@ INTERFACES = [
 # If you have renamed the ungzipped file, or have placed it somewhere other than
 # the repository root directory you will need to update this path.
 PATH_TO_GEOIP_DAT_FILE =
-	File.expand_path('../GeoIP.dat', File.dirname(__FILE__))
+	File.expand_path("../GeoIP.dat", File.dirname(__FILE__))
 
 # A sample DNS daemon that demonstrates how to use RubyDNS to build responses
 # that vary based on the geolocation of the requesting peer.  Clients of
@@ -61,7 +66,7 @@ class GeoIPDNS < Process::Daemon
 			fallback_resolver_supervisor = RubyDNS::Resolver.supervise(RubyDNS::System.nameservers)
 			
 			match(//, IN::A) do |transaction|
-				logger.debug 'In block'
+				logger.debug "In block"
 
 				# The IP Address of the peer is stored in the transaction options
 				# with the key :remote_address
@@ -83,7 +88,7 @@ class GeoIPDNS < Process::Daemon
 
 			# Default DNS handler
 			otherwise do |transaction|
-				logger.debug 'In otherwise'
+				logger.debug "In otherwise"
 				transaction.passthrough!(fallback_resolver_supervisor.actors.first)
 			end
 		end
@@ -93,14 +98,14 @@ class GeoIPDNS < Process::Daemon
 	# A simple mapper to demonstrate the behavior.
 	def self.answer_for_continent_code(code)
 		case code
-		when 'AF' then '1.1.1.1'
-		when 'AN' then '1.1.2.1'
-		when 'AS' then '1.1.3.1'
-		when 'EU' then '1.1.4.1'
-		when 'NA' then '1.1.5.1'
-		when 'OC' then '1.1.6.1'
-		when 'SA' then '1.1.7.1'
-		else '1.1.8.1'
+		when "AF" then "1.1.1.1"
+		when "AN" then "1.1.2.1"
+		when "AS" then "1.1.3.1"
+		when "EU" then "1.1.4.1"
+		when "NA" then "1.1.5.1"
+		when "OC" then "1.1.6.1"
+		when "SA" then "1.1.7.1"
+		else "1.1.8.1"
 		end
 	end
 

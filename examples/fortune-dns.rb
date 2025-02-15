@@ -1,40 +1,28 @@
 #!/usr/bin/env ruby
 # encoding: utf-8
 
-# Copyright, 2009, 2012, by Samuel G. D. Williams. <http://www.codeotaku.com>
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE.
+# Released under the MIT License.
+# Copyright, 2014, by Samuel Williams.
+# Copyright, 2014, by Peter M. Goldstein.
 
-require 'process/daemon'
-require 'process/daemon/privileges'
+# Released under the MIT License.
+# Copyright, 2014, by Samuel Williams.
+# Copyright, 2014, by Peter M. Goldstein.
 
-require 'rubydns'
-require 'rubydns/extensions/string'
+require "process/daemon"
+require "process/daemon/privileges"
 
-require 'digest/md5'
+require "rubydns"
+require "rubydns/extensions/string"
+
+require "digest/md5"
 
 # You might need to change the user name "daemon". This can be a user name
 # or a user id.
-RUN_AS = 'daemon'
+RUN_AS = "daemon"
 
-if Process::Daemon::Privileges.current_user != 'root'
-	$stderr.puts 'Sorry, this command needs to be run as root!'
+if Process::Daemon::Privileges.current_user != "root"
+	$stderr.puts "Sorry, this command needs to be run as root!"
 	exit 1
 end
 
@@ -54,7 +42,7 @@ class FortuneDNS < Process::Daemon
 			on(:start) do
 				Process::Daemon::Privileges.change_user(RUN_AS)
 
-				if ARGV.include?('--debug')
+				if ARGV.include?("--debug")
 					@logger.level = Logger::DEBUG
 					$stderr.sync = true
 				else
@@ -63,7 +51,7 @@ class FortuneDNS < Process::Daemon
 			end
 
 			match(/short\.fortune/, IN::TXT) do |transaction|
-				fortune = `fortune -s`.gsub(/\s+/, ' ').strip
+				fortune = `fortune -s`.gsub(/\s+/, " ").strip
 
 				transaction.respond!(*fortune.chunked, ttl: 0)
 			end
@@ -85,13 +73,13 @@ class FortuneDNS < Process::Daemon
 			end
 
 			match(/fortune/, [IN::CNAME, IN::TXT]) do |transaction|
-				fortune = `fortune`.gsub(/\s+/, ' ').strip
+				fortune = `fortune`.gsub(/\s+/, " ").strip
 				checksum = Digest::MD5.hexdigest(fortune)
 				cache[checksum] = fortune
 
 				answer_txt = "Text Size: #{fortune.size} Byte Size: #{fortune.bytesize}"
 				transaction.respond!(answer_txt, resource_class: IN::TXT, ttl: 0)
-				answer_cname = Name.create(checksum + '.fortune')
+				answer_cname = Name.create(checksum + ".fortune")
 				transaction.respond!(answer_cname, resource_class: IN::CNAME, ttl: 0)
 			end
 
