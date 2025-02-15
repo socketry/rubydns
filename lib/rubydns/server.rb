@@ -6,6 +6,8 @@
 # Copyright, 2014, by Zac Sprackett.
 # Copyright, 2015, by Michal Cichra.
 
+require_relative "rule"
+
 require "async/dns/server"
 
 module RubyDNS
@@ -19,20 +21,13 @@ module RubyDNS
 		#		end
 		#	end
 		#
-		def initialize(*args, &block)
-			super(*args)
+		def initialize(...)
+			super
 			
-			@events = {}
 			@rules = []
 			@otherwise = nil
-			
-			if block_given?
-				instance_eval(&block)
-			end
 		end
-
-		attr_accessor :logger
-
+		
 		# This function connects a pattern with a block. A pattern is either a String or a Regex instance. Optionally, a second argument can be provided which is either a String, Symbol or Array of resource record types which the rule matches against.
 		# 
 		#	match("www.google.com")
@@ -41,24 +36,6 @@ module RubyDNS
 		#
 		def match(*pattern, &block)
 			@rules << Rule.new(pattern, block)
-		end
-
-		# Register a named event which may be invoked later using #fire
-		#
-		#	on(:start) do |server|
-		#		Process::Daemon::Permissions.change_user(RUN_AS)
-		#	end
-		def on(event_name, &block)
-			@events[event_name] = block
-		end
-		
-		# Fire the named event, which must have been registered using on.
-		def fire(event_name)
-			callback = @events[event_name]
-			
-			if callback
-				callback.call(self)
-			end
 		end
 		
 		# Specify a default block to execute if all other rules fail to match. This block is typially used to pass the request on to another server (i.e. recursive request).
@@ -78,10 +55,10 @@ module RubyDNS
 		
 		# Give a name and a record type, try to match a rule and use it for processing the given arguments.
 		def process(name, resource_class, transaction)
-			@logger.debug {"<#{transaction.query.id}> Searching for #{name} #{resource_class.name}"}
+			Console.debug(self) {"<#{transaction.query.id}> Searching for #{name} #{resource_class.name}"}
 			
 			@rules.each do |rule|
-				@logger.debug {"<#{transaction.query.id}> Checking rule #{rule}..."}
+				Console.debug(self) {"<#{transaction.query.id}> Checking rule #{rule}..."}
 				
 				catch (:next) do
 					# If the rule returns true, we assume that it was successful and no further rules need to be evaluated.

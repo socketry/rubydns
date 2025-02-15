@@ -11,6 +11,14 @@ require "async/dns/server"
 module RubyDNS
 	# Represents a single rule in the server.
 	class Rule
+		def self.for(pattern, &block)
+			new(pattern, block)
+		end
+		
+		# Create a new rule with a given pattern and callback.
+		#
+		# @param pattern [Array] The pattern to match against.
+		# @param callback [Proc] The callback to invoke when the pattern matches.
 		def initialize(pattern, callback)
 			@pattern = pattern
 			@callback = callback
@@ -32,7 +40,7 @@ module RubyDNS
 		# Invoke the rule, if it matches the incoming request, it is evaluated and returns `true`, otherwise returns `false`.
 		def call(server, name, resource_class, transaction)
 			unless match(name, resource_class)
-				server.logger.debug "<#{transaction.query.id}> Resource class #{resource_class} failed to match #{@pattern[1].inspect}!"
+				Console.debug "<#{transaction.query.id}> Resource class #{resource_class} failed to match #{@pattern[1].inspect}!"
 				
 				return false
 			end
@@ -43,31 +51,31 @@ module RubyDNS
 				match_data = @pattern[0].match(name)
 				
 				if match_data
-					server.logger.debug "<#{transaction.query.id}> Regexp pattern matched with #{match_data.inspect}."
+					Console.debug "<#{transaction.query.id}> Regexp pattern matched with #{match_data.inspect}."
 					
-					@callback[transaction, match_data]
+					@callback.call(transaction, match_data)
 					
 					return true
 				end
 			when String
 				if @pattern[0] == name
-					server.logger.debug "<#{transaction.query.id}> String pattern matched."
+					Console.debug "<#{transaction.query.id}> String pattern matched."
 					
-					@callback[transaction]
+					@callback.call(transaction)
 					
 					return true
 				end
 			else
 				if (@pattern[0].call(name, resource_class) rescue false)
-					server.logger.debug "<#{transaction.query.id}> Callable pattern matched."
+					Console.debug "<#{transaction.query.id}> Callable pattern matched."
 					
-					@callback[transaction]
+					@callback.call(transaction)
 					
 					return true
 				end
 			end
 			
-			server.logger.debug "<#{transaction.query.id}> No pattern matched."
+			Console.debug "<#{transaction.query.id}> No pattern matched."
 			
 			# We failed to match the pattern.
 			return false
