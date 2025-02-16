@@ -6,7 +6,9 @@ RubyDNS is a high-performance DNS server which can be easily integrated into oth
 
 ## Usage
 
-There are examples in the `examples` directory which demonstrate how to use RubyDNS.
+Please see the [project documentation](https://github.io/socketry/rubydns/) for more details.
+
+  - [Getting Started](https://github.io/socketry/rubydns/guides/getting-started/index) - This guide explains how to get started running your own DNS server with RubyDNS.
 
 ## See Also
 

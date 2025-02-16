@@ -1,6 +1,6 @@
 # Releases
 
-## Unreleased
+## v2.1.0
 
   - Introduce `RubyDNS.run` as a slightly more modern way to run a server.
   - Move `RubyDNS::RuleBasedServer` to `RubyDNS::Server`.
