@@ -11,14 +11,17 @@ require "async/dns/server"
 module RubyDNS
 	# Represents a single rule in the server.
 	class Rule
+		# Create a new rule with a given pattern and callback.
+		#
+		# @parameter pattern [Array] The pattern to match against.
 		def self.for(pattern, &block)
 			new(pattern, block)
 		end
 		
 		# Create a new rule with a given pattern and callback.
 		#
-		# @param pattern [Array] The pattern to match against.
-		# @param callback [Proc] The callback to invoke when the pattern matches.
+		# @parameter pattern [Array] The pattern to match against.
+		# @parameter callback [Proc] The callback to invoke when the pattern matches.
 		def initialize(pattern, callback)
 			@pattern = pattern
 			@callback = callback
@@ -81,8 +84,9 @@ module RubyDNS
 			return false
 		end
 		
+		# Return a string representation of the rule.
 		def to_s
-			@pattern.inspect
+			"#<#{self.class} #{@pattern}>"
 		end
 	end
 end
