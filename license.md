@@ -7,16 +7,14 @@ Copyright, 2013, by Erran Carey.
 Copyright, 2013, by Timothy Redaelli.  
 Copyright, 2013, by Jean-Christophe Cyr.  
 Copyright, 2013, by Keith Larrimore.  
-Copyright, 2014, by justfalter.  
+Copyright, 2014, by Mike Ryan.  
 Copyright, 2014, by Zac Sprackett.  
 Copyright, 2014, by Mark Van de Vyver.  
 Copyright, 2014, by Peter M. Goldstein.  
-Copyright, 2014, by The Gitter Badger.  
 Copyright, 2014, by Chris Cunningham.  
 Copyright, 2015, by Michal Cichra.  
 Copyright, 2015, by Alexey Pisarenko.  
 Copyright, 2016, by John Bachir.  
-Copyright, 2016, by kaleforsale.  
 Copyright, 2018, by Rob Fors.  
 Copyright, 2020, by Olle Jonsson.  
 

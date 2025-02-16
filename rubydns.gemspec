@@ -7,7 +7,7 @@ Gem::Specification.new do |spec|
 	spec.version = RubyDNS::VERSION
 	
 	spec.summary = "An easy to use DNS server and resolver for Ruby."
-	spec.authors = ["Samuel Williams", "Peter M. Goldstein", "Erran Carey", "Keith Larrimore", "Alexey Pisarenko", "Chris Cunningham", "Genki Sugawara", "Jean-Christophe Cyr", "John Bachir", "Mark Van de Vyver", "Michal Cichra", "Olle Jonsson", "Rob Fors", "Satoshi Takada", "The Gitter Badger", "Timothy Redaelli", "Zac Sprackett", "justfalter", "kaleforsale"]
+	spec.authors = ["Samuel Williams", "Peter M. Goldstein", "Erran Carey", "Keith Larrimore", "Alexey Pisarenko", "Chris Cunningham", "Genki Sugawara", "Jean-Christophe Cyr", "John Bachir", "Mark Van de Vyver", "Michal Cichra", "Mike Ryan", "Olle Jonsson", "Rob Fors", "Satoshi Takada", "Timothy Redaelli", "Zac Sprackett"]
 	spec.license = "MIT"
 	
 	spec.cert_chain  = ["release.cert"]
