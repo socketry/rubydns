@@ -16,7 +16,7 @@ Gem::Specification.new do |spec|
 	spec.homepage = "https://github.com/socketry/rubydns"
 	
 	spec.metadata = {
-		"documentation_uri" => "https://github.io/socketry/rubydns/",
+		"documentation_uri" => "https://socketry.github.io/rubydns/",
 		"funding_uri" => "https://github.com/sponsors/ioquatix/",
 		"source_code_uri" => "https://github.com/socketry/rubydns.git",
 	}
