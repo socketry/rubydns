@@ -1,6 +1,6 @@
 # MIT License
 
-Copyright, 2009-2022, by Samuel Williams.  
+Copyright, 2009-2025, by Samuel Williams.  
 Copyright, 2011, by Genki Sugawara.  
 Copyright, 2012, by Satoshi Takada.  
 Copyright, 2013, by Erran Carey.  

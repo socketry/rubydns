@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2009-2017, by Samuel Williams.
+# Copyright, 2009-2025, by Samuel Williams.
 # Copyright, 2011, by Genki Sugawara.
 # Copyright, 2014, by Zac Sprackett.
 # Copyright, 2015, by Michal Cichra.

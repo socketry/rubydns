@@ -16,10 +16,12 @@ Gem::Specification.new do |spec|
 	spec.homepage = "https://github.com/socketry/rubydns"
 	
 	spec.metadata = {
+		"documentation_uri" => "https://github.io/socketry/rubydns/",
+		"funding_uri" => "https://github.com/sponsors/ioquatix/",
 		"source_code_uri" => "https://github.com/socketry/rubydns.git",
 	}
 	
-	spec.files = Dir.glob(["{bin,examples,lib,spec}/**/*", "*.md"], File::FNM_DOTMATCH, base: __dir__)
+	spec.files = Dir.glob(["{lib}/**/*", "*.md"], File::FNM_DOTMATCH, base: __dir__)
 	
 	spec.executables = ["rubydns-check"]
 	
